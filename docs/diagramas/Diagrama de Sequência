@@ -1,0 +1,37 @@
+@startuml
+actor "Worker (Cron/Background)" as worker
+participant "Serviço SEFAZ\n(SefazIntegration)" as service
+participant "Banco de Dados\n(PostgreSQL)" as db
+boundary "Web Service\nSEFAZ (Governo)" as sefaz_gov
+
+worker -> db : SELECT Empresa WHERE certificado_valido = true
+activate db
+db --> worker : Lista de Empresas e Certificados
+deactivate db
+
+loop Para cada Empresa
+    worker -> service : iniciar_consulta_nfe(cnpj, certificado)
+    activate service
+    
+    service -> service : Montar XML de Requisição (distDFeInt)
+    service -> service : Assinar com Certificado (cryptography/signxml)
+    
+    service -> sefaz_gov : POST HTTPS (Envelope SOAP)
+    activate sefaz_gov
+    sefaz_gov --> service : Retorno (XML Criptografado/Zipado)
+    deactivate sefaz_gov
+    
+    alt Retorno OK (cStat == 138)
+        service -> service : Descompactar e Extrair XML da NFe
+        service -> db : INSERT/UPDATE DocumentoFiscal
+        activate db
+        db --> service : Sucesso
+        deactivate db
+    else Consumo Indevido (cStat == 656)
+        service -> worker : Pausar processamento (Aguardar 1 hora)
+    end
+    
+    service --> worker : Log de Execução
+    deactivate service
+end
+@enduml
