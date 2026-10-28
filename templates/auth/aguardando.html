@@ -1,0 +1,73 @@
+{% set meta_description = "Recebemos o seu cadastro no BeatleXML. Confirme o e-mail; o suporte libera o acesso em breve." %}
+{% set og_title = "Aguardando aprovação — BeatleXML" %}
+{% set meta_robots = "noindex, nofollow" %}
+{% extends "layout/base.html" %}
+
+{% block title %}Aguardando aprovação — BeatleXML{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 py-12 px-4">
+    <div class="bg-white/95 backdrop-blur rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20 text-center">
+        <img src="/static/img/beatlexmlLogo.png" alt="BeatleXML" class="h-12 w-auto mx-auto mb-4">
+        <div class="mx-auto mb-4 h-12 w-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+            <i class="fas fa-clock text-xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Cadastro recebido</h1>
+        <p class="text-slate-600 leading-relaxed">
+            Enviamos um link para confirmar o seu e-mail. Depois disso, o suporte libera o acesso — você entra com o mesmo e-mail e senha.
+        </p>
+        <p class="text-sm text-slate-500 mt-4">
+            Dúvidas? Escreva para
+            <a class="font-medium text-slate-800 underline" href="mailto:{{ contato_email }}">{{ contato_email }}</a>.
+        </p>
+
+        <form id="reenvioForm" class="mt-6 text-left space-y-3">
+            <label class="block text-sm font-bold text-slate-700">Reenviar confirmação</label>
+            <input type="email" name="email" required placeholder="Seu e-mail"
+                   class="w-full px-4 py-2 border border-slate-200 rounded-lg">
+            <button type="submit" class="w-full px-4 py-2 rounded-lg border border-slate-300 text-slate-800 font-medium hover:bg-slate-50">
+                Reenviar e-mail
+            </button>
+        </form>
+        <div id="reenvio-msg" class="mt-3 hidden text-sm rounded-lg px-3 py-2"></div>
+
+        <a href="/auth/login" class="inline-block mt-6 px-5 py-2.5 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800">
+            Ir para o login
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('reenvioForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const form = this;
+    const msg = document.getElementById('reenvio-msg');
+    const fd = new FormData(form);
+    try {
+        if (window.beatleRecaptchaToken) {
+            const token = await window.beatleRecaptchaToken('cadastro');
+            if (token) {
+                fd.set('g-recaptcha-response', token);
+                fd.set('recaptcha_token', token);
+            }
+        }
+        const res = await fetch('/auth/reenviar-confirmacao', { method: 'POST', body: fd });
+        const data = await res.json();
+        msg.classList.remove('hidden');
+        if (res.ok) {
+            msg.className = 'mt-3 text-sm rounded-lg px-3 py-2 bg-emerald-50 text-emerald-800';
+            msg.textContent = data.message || 'Pronto.';
+        } else {
+            msg.className = 'mt-3 text-sm rounded-lg px-3 py-2 bg-red-50 text-red-800';
+            msg.textContent = data.detail || 'Não foi possível reenviar.';
+        }
+    } catch (err) {
+        msg.classList.remove('hidden');
+        msg.className = 'mt-3 text-sm rounded-lg px-3 py-2 bg-red-50 text-red-800';
+        msg.textContent = 'Não foi possível reenviar.';
+    }
+});
+</script>
+{% endblock %}

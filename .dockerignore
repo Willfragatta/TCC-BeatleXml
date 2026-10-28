@@ -1,0 +1,14 @@
+tcc overleaf
+.git
+.gitignore
+venv
+.venv
+__pycache__
+**/__pycache__
+*.pyc
+logs
+data
+.env
+*.exe
+static/releases
+pgdata

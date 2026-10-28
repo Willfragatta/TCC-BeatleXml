@@ -1,0 +1,56 @@
+<header class="bg-slate-900 text-white shadow-lg fixed top-0 left-0 right-0 z-50">
+    <div class="flex justify-between items-center px-6 py-4">
+        <div class="flex items-center space-x-4">
+            <a href="/suporte" class="flex items-center">
+                <img src="/static/img/beatlexmlLogo.png" alt="BeatleXML Logo" class="h-8 w-auto" style="filter: brightness(0) invert(1);">
+            </a>
+            <span class="bg-amber-600 px-3 py-1 rounded text-xs uppercase tracking-wider font-bold">Suporte</span>
+            <nav class="hidden sm:flex items-center gap-1 ml-4 text-sm">
+                <a href="/suporte" class="px-3 py-1.5 rounded hover:bg-slate-800">Painel</a>
+                <a href="/suporte/usuarios" class="px-3 py-1.5 rounded hover:bg-slate-800 inline-flex items-center gap-2">
+                    Usuários
+                    <span id="badge-pendentes" class="hidden min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-slate-900 text-xs font-bold text-center">0</span>
+                </a>
+                <a href="/suporte/atendimento" class="px-3 py-1.5 rounded hover:bg-slate-800">Atendimento</a>
+            </nav>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="relative group">
+                <button class="flex items-center space-x-2 hover:bg-slate-800 px-3 py-2 rounded">
+                    <i class="fas fa-user-circle text-xl"></i>
+                    <span>{% if usuario.nome_completo %}{{ usuario.nome_completo }}{% else %}{{ usuario.email }}{% endif %}</span>
+                    <i class="fas fa-chevron-down text-xs"></i>
+                </button>
+                <div class="hidden group-hover:block absolute right-0 mt-2 w-48 bg-white rounded shadow-lg py-2">
+                    <a href="/suporte/seguranca" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                        Segurança (2FA)
+                    </a>
+                    <a href="/auth/logout" class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Sair
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+<script>
+(function () {
+    fetch('/api/suporte/pendentes-resumo')
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+            if (!d) return;
+            const n = (d.usuarios || 0) + (d.empresas || 0);
+            const el = document.getElementById('badge-pendentes');
+            if (el && n > 0) {
+                el.textContent = String(n);
+                el.classList.remove('hidden');
+            }
+            const tk = document.getElementById('badge-tickets');
+            if (tk && (d.tickets || 0) > 0) {
+                tk.textContent = String(d.tickets);
+                tk.classList.remove('hidden');
+            }
+        })
+        .catch(function () {});
+})();
+</script>

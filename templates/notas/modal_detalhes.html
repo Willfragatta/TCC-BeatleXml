@@ -1,0 +1,403 @@
+<div id="modal-detalhes" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <button type="button" id="btn-nota-prev" onclick="navegarNotaModal(-1)" class="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-[55] w-11 h-11 rounded-full bg-white shadow-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed" title="Nota anterior">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <button type="button" id="btn-nota-next" onclick="navegarNotaModal(1)" class="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-[55] w-11 h-11 rounded-full bg-white shadow-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed" title="Próxima nota">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden max-h-[90vh] flex flex-col relative">
+        <div class="p-6 border-b border-slate-200 flex flex-col gap-4 sticky top-0 bg-white relative z-20 shrink-0">
+            <div class="flex items-start justify-between gap-6">
+                <div class="space-y-2">
+                    <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wide">Detalhes da Nota Fiscal <span id="modal-nav-contador" class="text-slate-400 font-normal normal-case tracking-normal ml-2"></span></h2>
+                    <div id="etiquetas-nota" class="flex flex-wrap gap-2"></div>
+                    <button onclick="abrirGerenciarEtiquetas()" class="text-xs text-blue-600 hover:text-blue-800 font-bold">
+                        <i class="fas fa-tag mr-1"></i> Gerenciar Etiquetas
+                    </button>
+                </div>
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                    <a id="btn-danfe-view" href="#" target="_blank" class="px-4 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg shadow-sm flex items-center hidden">
+                        <i class="fas fa-eye mr-2"></i> Ver DANFE
+                    </a>
+                    <a id="btn-danfe-download" href="#" class="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-lg flex items-center hidden">
+                        <i class="fas fa-print mr-2"></i> Baixar DANFE
+                    </a>
+                    <a id="btn-download" href="#" class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-lg flex items-center">
+                        <i class="fas fa-download mr-2"></i> Baixar XML
+                    </a>
+                    <button onclick="fecharModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto">
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-slate-100/70 p-4 rounded-xl border border-slate-200">
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase">Emitente</label>
+                        <div class="text-xs text-slate-600">
+                            <span class="font-bold text-slate-800 uppercase" id="modal-emitente-nome"></span>
+                            <span class="text-[10px] text-slate-500 ml-2">
+                                CNPJ: <span id="modal-cnpj"></span>
+                                <button type="button" onclick="copiarTexto(document.getElementById('modal-cnpj').innerText)" class="text-slate-400 hover:text-slate-600 ml-1" title="Copiar CNPJ">
+                                    <i class="fas fa-link text-[10px]"></i>
+                                </button>
+                                | IE: <span id="modal-ie"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase">Chave de Acesso</label>
+                        <div class="flex items-center gap-2 text-xs text-slate-600">
+                            <span class="font-mono" id="modal-chave-text"></span>
+                            <button type="button" onclick="copiarTexto(document.getElementById('modal-chave-text').innerText)" class="text-slate-400 hover:text-slate-600" title="Copiar chave">
+                                <i class="fas fa-link text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase">Número / Série</label>
+                            <div class="flex items-center gap-2">
+                                <span id="modal-numero" class="text-sm font-bold text-slate-800">---</span>
+                                <button type="button" onclick="copiarTexto(document.getElementById('modal-numero').innerText)" class="text-slate-400 hover:text-slate-600" title="Copiar número">
+                                    <i class="fas fa-link text-xs"></i>
+                                </button>
+                                <span class="text-xs text-slate-500">/ Série <span id="modal-serie"></span></span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase">Data de Emissão</label>
+                            <p id="modal-data-emissao" class="text-sm text-slate-700">---</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase">Valor Total</label>
+                            <p id="modal-valor-total" class="text-sm font-bold text-blue-600">---</p>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase">Data de Saída</label>
+                            <p id="modal-data-saida" class="text-sm text-slate-700">---</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase">Natureza da Operação</label>
+                        <p id="modal-natureza" class="text-sm text-slate-800 font-semibold uppercase">---</p>
+                    </div>
+                </div>
+            </div>
+
+                <div id="container-itens" class="hidden relative z-0">
+                <h3 class="text-sm font-bold text-slate-700 mb-3 border-b border-slate-200 pb-2">Produtos e Impostos</h3>
+                <div class="overflow-x-auto overflow-y-auto max-h-96 rounded-lg border border-slate-200 bg-slate-50/60 relative z-0">
+                    <table class="min-w-full text-xs text-left bg-white">
+                        <thead class="bg-slate-100 text-slate-600 font-bold sticky top-0 border-b border-slate-200 z-0">
+                            <tr>
+                                <th class="px-4 py-2 uppercase">Código</th>
+                                <th class="px-4 py-2 uppercase">Descrição</th>
+                                <th class="px-4 py-2 text-center uppercase">CFOP</th>
+                                <th class="px-4 py-2 text-center uppercase">CST</th>
+                                <th class="px-4 py-2 text-center uppercase">UND</th>
+                                <th class="px-4 py-2 text-center uppercase">Qtd</th>
+                                <th class="px-4 py-2 text-right uppercase">Vlr Unit</th>
+                                <th class="px-4 py-2 text-right uppercase">Vlr Total</th>
+                                <th class="px-4 py-2 text-right uppercase">BC ICMS</th>
+                                <th class="px-4 py-2 text-right uppercase">Aliq ICMS</th>
+                                <th class="px-4 py-2 text-right uppercase">Aliq IPI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-itens-corpo" class="divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+                <div id="aviso-resumo" class="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-start mt-4 hidden">
+                <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                <div>
+                    <h4 class="text-sm font-bold text-blue-800">Aviso: XML de Resumo</h4>
+                    <p class="text-xs text-blue-600">Os dados completos estarão disponíveis após o processamento da Ciência da Operação.</p>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+            <button onclick="fecharModal()" class="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg shadow-sm">
+                Fechar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let notaAtualId = null;
+
+function estiloChipEtiqueta(et) {
+    const borda = et.cor || '#3B82F6';
+    const fundo = et.cor_fundo || (borda + '40');
+    const texto = et.cor_texto || borda;
+    return `background-color:${fundo};color:${texto};border:1px solid ${borda};font-weight:600;`;
+}
+
+function atualizarNavModal() {
+    const ids = (typeof idsPaginaAtual !== 'undefined' && Array.isArray(idsPaginaAtual)) ? idsPaginaAtual : [];
+    const idx = ids.indexOf(notaAtualId);
+    const prevBtn = document.getElementById('btn-nota-prev');
+    const nextBtn = document.getElementById('btn-nota-next');
+    const cont = document.getElementById('modal-nav-contador');
+    if (idx < 0 || ids.length === 0) {
+        if (prevBtn) prevBtn.disabled = true;
+        if (nextBtn) nextBtn.disabled = true;
+        if (cont) cont.textContent = '';
+        return;
+    }
+    if (prevBtn) prevBtn.disabled = idx <= 0;
+    if (nextBtn) nextBtn.disabled = idx >= ids.length - 1;
+    if (cont) cont.textContent = `(${idx + 1} / ${ids.length})`;
+}
+
+function navegarNotaModal(delta) {
+    const ids = (typeof idsPaginaAtual !== 'undefined' && Array.isArray(idsPaginaAtual)) ? idsPaginaAtual : [];
+    const idx = ids.indexOf(notaAtualId);
+    if (idx < 0) return;
+    const novo = idx + delta;
+    if (novo < 0 || novo >= ids.length) return;
+    abrirDetalhes(ids[novo]);
+}
+
+document.addEventListener('keydown', function(ev) {
+    const modal = document.getElementById('modal-detalhes');
+    if (!modal || modal.classList.contains('hidden')) return;
+    if (ev.key === 'ArrowLeft') { ev.preventDefault(); navegarNotaModal(-1); }
+    if (ev.key === 'ArrowRight') { ev.preventDefault(); navegarNotaModal(1); }
+});
+
+async function abrirDetalhes(id) {
+    notaAtualId = id;
+    
+    try {
+        const [resNota, resEtiquetas] = await Promise.all([
+            fetch(`/nota/${id}`),
+            fetch(`/api/etiquetas/notas/${id}/etiquetas`)
+        ]);
+        
+        const data = await resNota.json();
+        const etiquetas = resEtiquetas.ok ? await resEtiquetas.json() : [];
+        
+        document.getElementById('modal-chave-text').innerText = data.chave;
+        document.getElementById('btn-download').href = `/download/${id}`;
+        const btnDanfeView = document.getElementById('btn-danfe-view');
+        const btnDanfeDownload = document.getElementById('btn-danfe-download');
+        btnDanfeView.href = `/api/notas/danfe/${id}`;
+        btnDanfeDownload.href = `/api/notas/danfe/${id}?download=1`;
+        
+        // Carregar etiquetas
+        const containerEtiquetas = document.getElementById('etiquetas-nota');
+        if (etiquetas.length > 0) {
+            containerEtiquetas.innerHTML = etiquetas.map(et => 
+                `<span class="px-2 py-1 rounded-full text-xs font-medium" style="${estiloChipEtiqueta(et)}">${et.nome}</span>`
+            ).join(' ');
+        } else {
+            containerEtiquetas.innerHTML = '<span class="text-gray-400 text-xs">Sem etiquetas</span>';
+        }
+
+        function formatarDataIso(iso) {
+            if (!iso) return '---';
+            try {
+                const d = new Date(iso);
+                if (isNaN(d.getTime())) return '---';
+                return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            } catch (e) { return '---'; }
+        }
+        document.getElementById('modal-data-emissao').innerText = '---';
+        document.getElementById('modal-data-saida').innerText = '---';
+        if (data.tipo === "COMPLETA") {
+            btnDanfeView.classList.remove('hidden');
+            btnDanfeDownload.classList.remove('hidden');
+            document.getElementById('modal-emitente-nome').innerText = data.emitente.nome || '---';
+            document.getElementById('modal-cnpj').innerText = data.emitente.cnpj || '---';
+            document.getElementById('modal-ie').innerText = data.emitente.ie || '---';
+            document.getElementById('modal-numero').innerText = data.dados_nfe.numero || '---';
+            document.getElementById('modal-serie').innerText = data.dados_nfe.serie || '---';
+            document.getElementById('modal-data-emissao').innerText = formatarDataIso(data.dados_nfe.data_emissao);
+            document.getElementById('modal-data-saida').innerText = formatarDataIso(data.dados_nfe.data_saida);
+            document.getElementById('modal-valor-total').innerText = `R$ ${(typeof formatarMoedaBR === 'function' ? formatarMoedaBR(data.dados_nfe.valor_nfe) : data.dados_nfe.valor_nfe.toFixed(2).replace('.', ','))}`;
+            document.getElementById('modal-natureza').innerText = (data.natureza_operacao || data.dados_nfe.natureza_operacao || '---');
+            
+            const corpo = document.getElementById('tabela-itens-corpo');
+            corpo.innerHTML = '';
+            const fmt = typeof formatarMoedaBR === 'function' ? formatarMoedaBR : n => (n == null || isNaN(n) ? '0,00' : Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            const fmtPct = n => (n == null || isNaN(n) ? '0,00' : Number(n).toFixed(2).replace('.', ',')) + '%';
+            data.itens.forEach(item => {
+                const cstRaw = item.cst_icms || item.cst_ipi || '';
+                const cstStr = (cstRaw === '' || cstRaw == null) ? '---' : String(cstRaw).padStart(3, '0');
+                // Campos opcionais (mostrar abaixo da descrição se existir)
+                let camposOpcionais = [];
+                if (item.v_fcp && item.v_fcp > 0) camposOpcionais.push(`FCP: R$ ${fmt(item.v_fcp)}`);
+                if (item.v_desconto && item.v_desconto > 0) camposOpcionais.push(`Desconto: R$ ${fmt(item.v_desconto)}`);
+                if (item.imposto_ipi && item.imposto_ipi > 0) camposOpcionais.push(`IPI: R$ ${fmt(item.imposto_ipi)}`);
+                if (item.v_icms_st && item.v_icms_st > 0) camposOpcionais.push(`ICMS ST: R$ ${fmt(item.v_icms_st)}`);
+                if (item.v_despesas && item.v_despesas > 0) camposOpcionais.push(`Despesas: R$ ${fmt(item.v_despesas)}`);
+                if (item.codigo_barras) camposOpcionais.push(`Cód. Barras: ${item.codigo_barras}`);
+                
+                const camposOpcionaisHtml = camposOpcionais.length > 0 
+                    ? `<div class="text-[10px] text-gray-500 mt-1 space-y-0.5">${camposOpcionais.join(' | ')}</div>` 
+                    : '';
+                
+                const qtdStr = (item.quantidade != null && !isNaN(item.quantidade)) ? Number(item.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '---';
+                corpo.innerHTML += `<tr class="hover:bg-slate-50/70">
+                    <td class="px-4 py-2 font-mono text-[10px]">${item.codigo || '---'}</td>
+                    <td class="px-4 py-2">
+                        <div class="font-medium">${item.descricao || '---'}</div>
+                        ${camposOpcionaisHtml}
+                    </td>
+                    <td class="px-4 py-2 text-center font-mono">${item.cfop || '---'}</td>
+                    <td class="px-4 py-2 text-center font-mono">${cstStr}</td>
+                    <td class="px-4 py-2 text-center">${item.unidade || '---'}</td>
+                    <td class="px-4 py-2 text-center font-bold">${qtdStr}</td>
+                    <td class="px-4 py-2 text-right">R$ ${fmt(item.valor_unitario)}</td>
+                    <td class="px-4 py-2 text-right font-bold text-blue-600">R$ ${fmt(item.valor_total)}</td>
+                    <td class="px-4 py-2 text-right">R$ ${fmt(item.bc_icms || 0)}</td>
+                    <td class="px-4 py-2 text-right">${fmtPct(item.aliq_icms || 0)}</td>
+                    <td class="px-4 py-2 text-right">${fmtPct(item.aliq_ipi || 0)}</td>
+                </tr>`;
+            });
+            document.getElementById('container-itens').classList.remove('hidden');
+            document.getElementById('aviso-resumo').classList.add('hidden');
+        } else {
+            btnDanfeView.classList.add('hidden');
+            btnDanfeDownload.classList.add('hidden');
+            document.getElementById('modal-emitente-nome').innerText = data.emitente_nome || '---';
+            document.getElementById('modal-cnpj').innerText = '---';
+            document.getElementById('modal-ie').innerText = '---';
+            document.getElementById('modal-numero').innerText = 'Resumo';
+            document.getElementById('modal-serie').innerText = '---';
+            document.getElementById('modal-valor-total').innerText = `R$ ${(typeof formatarMoedaBR === 'function' ? formatarMoedaBR(data.valor) : data.valor.toFixed(2).replace('.', ','))}`;
+            document.getElementById('modal-natureza').innerText = data.natureza_operacao || '---';
+            document.getElementById('container-itens').classList.add('hidden');
+            document.getElementById('aviso-resumo').classList.remove('hidden');
+        }
+        atualizarNavModal();
+        document.getElementById('modal-detalhes').classList.remove('hidden');
+        document.getElementById('modal-detalhes').classList.add('flex');
+    } catch (error) {
+        alert('Erro ao carregar detalhes da nota');
+        console.error(error);
+    }
+}
+
+async function abrirGerenciarEtiquetas() {
+    if (!notaAtualId) return;
+    
+    // Carregar etiquetas disponíveis e etiquetas da nota
+    const [resDisponiveis, resNota] = await Promise.all([
+        fetch('/api/etiquetas'),
+        fetch(`/api/etiquetas/notas/${notaAtualId}/etiquetas`)
+    ]);
+    
+    const disponiveis = await resDisponiveis.json();
+    const daNota = await resNota.json();
+    const idsDaNota = new Set(daNota.map(e => e.id));
+    
+    // Criar modal de gerenciamento
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h2 class="text-xl font-bold">Gerenciar Etiquetas</h2>
+                <button onclick="this.closest('.fixed').remove()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 max-h-96 overflow-y-auto">
+                ${disponiveis.map(et => `
+                    <label class="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+                        <input type="checkbox" ${idsDaNota.has(et.id) ? 'checked' : ''} 
+                               onchange="toggleEtiqueta(${et.id}, ${notaAtualId}, this.checked)"
+                               class="mr-3 rounded">
+                        <span class="px-3 py-1 rounded-full text-sm" style="${estiloChipEtiqueta(et)}">${et.nome}</span>
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+async function toggleEtiqueta(etiquetaId, notaId, aplicar) {
+    try {
+        const url = `/api/etiquetas/notas/${notaId}/etiquetas/${etiquetaId}`;
+        const res = await fetch(url, {
+            method: aplicar ? 'POST' : 'DELETE'
+        });
+        
+        if (res.ok) {
+            // Recarregar etiquetas no modal
+            const resEtiquetas = await fetch(`/api/etiquetas/notas/${notaId}/etiquetas`);
+            const etiquetas = await resEtiquetas.json();
+            const container = document.getElementById('etiquetas-nota');
+            if (etiquetas.length > 0) {
+                container.innerHTML = etiquetas.map(et => 
+                    `<span class="px-2 py-1 rounded-full text-xs font-medium" style="${estiloChipEtiqueta(et)}">${et.nome}</span>`
+                ).join(' ');
+            } else {
+                container.innerHTML = '<span class="text-gray-400 text-xs">Sem etiquetas</span>';
+            }
+            
+            // Atualizar etiquetas na tabela principal (sem reload)
+            atualizarEtiquetasNaTabela(notaId, etiquetas);
+        }
+    } catch (error) {
+        console.error('Erro ao alterar etiqueta:', error);
+    }
+}
+
+// Função global para atualizar etiquetas na tabela (chamada do modal)
+window.atualizarEtiquetasNaTabela = function(notaId, etiquetas) {
+    // Encontra a linha da nota na tabela
+    const row = document.querySelector(`tr[data-nota-id="${notaId}"]`);
+    if (!row) return;
+    
+    // Encontra a célula de etiquetas
+    const etiquetasCell = row.querySelector('td[data-col="etiquetas"]');
+    if (!etiquetasCell) return;
+    
+    // Atualiza o conteúdo das etiquetas
+    if (etiquetas.length > 0) {
+        const etiquetasHtml = etiquetas.map(et => 
+            `<span class="px-2 py-1 rounded-full text-xs font-medium" style="${estiloChipEtiqueta(et)}">${et.nome}</span>`
+        ).join(' ');
+        etiquetasCell.innerHTML = `<div class="flex flex-wrap gap-1">${etiquetasHtml}</div>`;
+    } else {
+        etiquetasCell.innerHTML = '<span class="text-gray-400 text-xs">Sem etiquetas</span>';
+    }
+};
+
+function fecharModal() {
+    document.getElementById('modal-detalhes').classList.add('hidden');
+    document.getElementById('modal-detalhes').classList.remove('flex');
+}
+
+async function copiarTexto(texto) {
+    if (!texto) return;
+    try {
+        await navigator.clipboard.writeText(texto);
+    } catch (e) {
+        const temp = document.createElement('textarea');
+        temp.value = texto;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+    }
+}
+</script>
+

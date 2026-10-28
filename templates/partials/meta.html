@@ -1,0 +1,17 @@
+<link rel="icon" type="image/png" href="/static/img/beatlexmlLogo.png">
+<link rel="canonical" href="{{ canonical | default(site_url + request.url.path) }}">
+{% if meta_robots %}
+<meta name="robots" content="{{ meta_robots }}">
+{% endif %}
+{% if meta_description %}
+<meta name="description" content="{{ meta_description }}">
+<meta property="og:description" content="{{ meta_description }}">
+<meta name="twitter:description" content="{{ meta_description }}">
+{% endif %}
+<meta property="og:title" content="{{ og_title | default('BeatleXML') }}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ canonical | default(site_url + request.url.path) }}">
+<meta property="og:image" content="{{ site_url }}/static/img/beatlexmlLogo.png">
+<meta property="og:locale" content="pt_BR">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ og_title | default('BeatleXML') }}">

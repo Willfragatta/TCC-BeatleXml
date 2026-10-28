@@ -1,0 +1,257 @@
+<aside class="bg-white shadow-lg fixed left-0 top-16 bottom-0 w-64 overflow-y-auto">
+    <nav class="p-4">
+        {% set paginas = request.state.paginas_permitidas %}
+        <div class="mb-6">
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Empresa Ativa</label>
+            <input id="empresa-busca" type="search" autocomplete="off" placeholder="Nome ou CNPJ"
+                   class="w-full px-3 py-2 mb-2 border border-gray-300 rounded-lg text-sm">
+            <select id="empresa-ativa" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <option value="">Carregando...</option>
+            </select>
+        </div>
+
+        <div class="space-y-5">
+            {% if paginas is none or '/dashboard' in paginas %}
+            <div>
+                <p class="px-4 mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Início</p>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="/dashboard" data-nav="/dashboard"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-chart-line w-5"></i>
+                            <span>{% if request.state.usuario and request.state.usuario.role == 'contador' %}Escritório{% else %}Dashboard{% endif %}</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if paginas is none or '/notas' in paginas or '/nfe-emitidas' in paginas or '/nfce-emitidas' in paginas %}
+            <div>
+                <p class="px-4 mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Notas fiscais</p>
+                <ul class="space-y-1">
+                    {% if paginas is none or '/notas' in paginas %}
+                    <li>
+                        <a href="/notas" data-nav="/notas"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-file-invoice w-5"></i>
+                            <span>NFe recebidas</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/notas?situacao=canceladas" data-nav="/notas?situacao=canceladas"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-ban w-5"></i>
+                            <span>NFe canceladas</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if paginas is none or '/nfe-emitidas' in paginas %}
+                    <li>
+                        <a href="/nfe-emitidas" data-nav="/nfe-emitidas"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-paper-plane w-5"></i>
+                            <span>NFe emitidas</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if paginas is none or '/nfce-emitidas' in paginas %}
+                    <li>
+                        <a href="/nfce-emitidas" data-nav="/nfce-emitidas"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-receipt w-5"></i>
+                            <span>NFCe emitidas</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if paginas is none or '/financeiro' in paginas %}
+            <div>
+                <p class="px-4 mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Financeiro</p>
+                <ul class="space-y-1">
+                    {% if paginas is none or '/financeiro' in paginas %}
+                    <li>
+                        <a href="/financeiro" data-nav="/financeiro"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-money-check-alt w-5"></i>
+                            <span>Financeiro</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if paginas is none or '/empresas' in paginas or '/usuarios' in paginas or '/contador' in paginas or '/ferramentas' in paginas or '/config' in paginas %}
+            <div>
+                <p class="px-4 mb-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">Gestão</p>
+                <ul class="space-y-1">
+                    {% if paginas is none or '/empresas' in paginas %}
+                    <li>
+                        <a href="/empresas" data-nav="/empresas"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-building w-5"></i>
+                            <span>Empresas</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if paginas is none or '/usuarios' in paginas %}
+                    <li>
+                        <a href="/usuarios" data-nav="/usuarios"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-users w-5"></i>
+                            <span>Usuários</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if paginas is none or '/contador' in paginas %}
+                    <li>
+                        <a href="/contador" data-nav="/contador"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-calculator w-5"></i>
+                            <span>Contador</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if paginas is none or '/ferramentas' in paginas %}
+                    <li>
+                        <a href="/ferramentas" data-nav="/ferramentas"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-download w-5"></i>
+                            <span>Ferramentas</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if paginas is none or '/config' in paginas %}
+                    <li>
+                        <a href="/config" data-nav="/config"
+                           class="nav-item flex items-center space-x-3 px-4 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50">
+                            <i class="fas fa-cog w-5"></i>
+                            <span>Configurações</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+</aside>
+
+<script>
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+function setCookie(name, value, days = 365) {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+}
+
+function marcarNavAtivo() {
+    const path = window.location.pathname || '';
+    const search = window.location.search || '';
+    const atual = path + search;
+    document.querySelectorAll('a.nav-item').forEach((a) => {
+        const alvo = a.getAttribute('data-nav') || a.getAttribute('href') || '';
+        let ativo = false;
+        if (alvo.includes('?')) {
+            ativo = atual === alvo || (path === alvo.split('?')[0] && search === '?' + alvo.split('?')[1]);
+        } else if (alvo === '/notas') {
+            ativo = path === '/notas' && !search.includes('situacao=canceladas');
+        } else {
+            ativo = path === alvo || path.startsWith(alvo + '/');
+        }
+        a.classList.toggle('bg-blue-50', ativo);
+        a.classList.toggle('text-blue-700', ativo);
+        a.classList.toggle('font-semibold', ativo);
+        a.classList.toggle('text-gray-700', !ativo);
+    });
+}
+
+let empresasCarregadas = [];
+
+function preencherSelectEmpresas(filtro) {
+    const select = document.getElementById('empresa-ativa');
+    if (!select) return;
+    const termo = (filtro || '').replace(/\D/g, '').length >= 3 && !/[a-z]/i.test(filtro)
+        ? (filtro || '').replace(/\D/g, '')
+        : (filtro || '').trim().toLowerCase();
+    const ativa = getCookie('empresa_ativa');
+    const lista = empresasCarregadas.filter(empresa => {
+        if (!termo) return true;
+        const nome = (empresa.razao_social || '').toLowerCase();
+        const cnpj = String(empresa.cnpj || '').replace(/\D/g, '');
+        return nome.includes(termo) || cnpj.includes(termo);
+    });
+    select.innerHTML = '';
+    const ativaObj = empresasCarregadas.find(e => String(e.id) === String(ativa));
+    if (ativaObj && !lista.some(e => e.id === ativaObj.id)) {
+        lista.unshift(ativaObj);
+    }
+    if (!lista.length) {
+        select.innerHTML = '<option value="">Nenhuma empresa encontrada</option>';
+        return;
+    }
+    lista.forEach(empresa => {
+        const option = document.createElement('option');
+        option.value = empresa.id;
+        option.textContent = `${empresa.razao_social} (${empresa.cnpj})`;
+        select.appendChild(option);
+    });
+    if (ativa) select.value = ativa;
+}
+
+async function carregarEmpresas() {
+    const select = document.getElementById('empresa-ativa');
+    if (!select) return;
+
+    try {
+        const response = await fetch('/api/empresas');
+        if (!response.ok) throw new Error('Erro ao carregar empresas');
+
+        empresasCarregadas = await response.json();
+        if (!empresasCarregadas.length) {
+            select.innerHTML = '<option value="">Nenhuma empresa cadastrada</option>';
+            return;
+        }
+        const empresaAtivaId = getCookie('empresa_ativa');
+        if (!empresaAtivaId) {
+            setCookie('empresa_ativa', empresasCarregadas[0].id);
+        }
+        preencherSelectEmpresas('');
+    } catch (error) {
+        console.error('Erro ao carregar empresas:', error);
+        select.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    carregarEmpresas();
+    marcarNavAtivo();
+
+    const busca = document.getElementById('empresa-busca');
+    if (busca) {
+        busca.addEventListener('input', function() {
+            preencherSelectEmpresas(busca.value);
+        });
+    }
+    const select = document.getElementById('empresa-ativa');
+    if (select) {
+        select.addEventListener('change', function(e) {
+            const empresaId = e.target.value;
+            if (empresaId) {
+                setCookie('empresa_ativa', empresaId);
+                window.location.reload();
+            }
+        });
+    }
+});
+</script>

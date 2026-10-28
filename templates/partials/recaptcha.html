@@ -1,0 +1,95 @@
+{% if recaptcha_site_key %}
+<script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_site_key }}&hl=pt-BR"></script>
+<script>
+(function () {
+    const siteKey = {{ recaptcha_site_key | tojson }};
+
+    function mostrarErro(form, texto) {
+        let box = document.getElementById('auth-js-erro');
+        if (!box && form) {
+            box = document.createElement('div');
+            box.id = 'auth-js-erro';
+            form.insertAdjacentElement('afterend', box);
+        }
+        if (!box) {
+            console.warn(texto);
+            return;
+        }
+        box.className = 'mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded';
+        box.textContent = texto;
+        box.classList.remove('hidden');
+    }
+
+    function esperarPronto() {
+        return new Promise(function (resolve, reject) {
+            const limite = Date.now() + 12000;
+            function tentar() {
+                if (typeof grecaptcha !== 'undefined' && typeof grecaptcha.execute === 'function') {
+                    if (typeof grecaptcha.ready === 'function') {
+                        grecaptcha.ready(resolve);
+                    } else {
+                        resolve();
+                    }
+                    return;
+                }
+                if (Date.now() > limite) {
+                    reject(new Error('timeout'));
+                    return;
+                }
+                setTimeout(tentar, 80);
+            }
+            tentar();
+        });
+    }
+
+    function executar(action) {
+        return esperarPronto().then(function () {
+            const p = grecaptcha.execute(siteKey, { action: action });
+            if (!p || typeof p.then !== 'function') {
+                throw new Error('execute sem token');
+            }
+            return p;
+        });
+    }
+
+    window.beatleRecaptchaToken = function (action) {
+        if (!siteKey) return Promise.resolve('');
+        return executar(action);
+    };
+
+    window.beatleRecaptchaBind = function (form, action) {
+        if (!form || form.dataset.recaptchaBound === '1') return;
+        form.dataset.recaptchaBound = '1';
+        form.addEventListener('submit', function (e) {
+            if (form.dataset.recaptchaOk === '1') return;
+            e.preventDefault();
+            const btn = form.querySelector('[type="submit"]');
+            if (btn) btn.disabled = true;
+            const seguir = function (token) {
+                ['g-recaptcha-response', 'recaptcha_token'].forEach(function (nome) {
+                    let inp = form.querySelector('input[name="' + nome + '"]');
+                    if (!inp) {
+                        inp = document.createElement('input');
+                        inp.type = 'hidden';
+                        inp.name = nome;
+                        form.appendChild(inp);
+                    }
+                    inp.value = token || '';
+                });
+                form.dataset.recaptchaOk = '1';
+                form.submit();
+            };
+            if (!siteKey) {
+                seguir('');
+                return;
+            }
+            executar(action).then(seguir).catch(function (err) {
+                console.warn('reCAPTCHA', err);
+                mostrarErro(form, 'Não foi possível validar. Abra o site em www.beatlexml.com.br e tente de novo.');
+                if (btn) btn.disabled = false;
+            });
+        });
+    };
+})();
+</script>
+{% endif %}

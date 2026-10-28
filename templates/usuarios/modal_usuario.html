@@ -1,0 +1,85 @@
+<div id="modal-usuario" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h2 id="modal-titulo-usuario" class="text-xl font-bold text-slate-800">Novo Usuário</h2>
+            <button onclick="fecharModalUsuario()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <form id="form-usuario" class="p-6 space-y-4">
+            <input type="hidden" id="usuario-id" value="">
+            
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Email *</label>
+                <input type="email" id="usuario-email" required 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg" 
+                       placeholder="usuario@exemplo.com">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Nome Completo *</label>
+                <input type="text" id="usuario-nome" required 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg" 
+                       placeholder="Nome completo">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Telefone</label>
+                <input type="tel" id="usuario-telefone" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg" 
+                       placeholder="(00) 00000-0000">
+            </div>
+            
+            <div id="campo-senha">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Senha *</label>
+                <input type="password" id="usuario-senha" required minlength="6"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg" 
+                       placeholder="Mínimo 6 caracteres">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Status</label>
+                <select id="usuario-status" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="ativo">Ativo</option>
+                    <option value="suspenso">Suspenso</option>
+                    <option value="cancelado">Cancelado</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Papel nas empresas</label>
+                <select id="usuario-papel" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="operador">Operador</option>
+                    <option value="empresa_master">Master da empresa</option>
+                    <option value="leitura">Somente leitura</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Empresas</label>
+                <div id="usuario-empresas" class="max-h-32 overflow-y-auto border rounded-lg p-2 space-y-1 text-sm"></div>
+            </div>
+
+            <div id="campo-role-suporte" class="hidden">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Perfil global (admin)</label>
+                <select id="usuario-role" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="cliente">Cliente</option>
+                    <option value="suporte">Suporte</option>
+                </select>
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" onclick="fecharModalUsuario()" 
+                        class="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-lg">
+                    <i class="fas fa-save mr-2"></i> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+

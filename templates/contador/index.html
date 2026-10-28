@@ -1,0 +1,87 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Contador - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+    <div class="p-6 border-b border-slate-100">
+        <h2 class="text-xl font-bold text-slate-800">Download por mês</h2>
+        {% if empresa %}
+        <p class="text-sm font-medium text-slate-700 mt-1">{{ empresa.razao_social }} · {{ empresa.cnpj }}</p>
+        {% endif %}
+        <p class="text-sm text-slate-500 mt-1">Baixe em ZIP as notas emitidas do mês (NF-e e NFC-e). A empresa é a selecionada no menu.</p>
+    </div>
+    <div class="p-6">
+        <div class="mb-6">
+            <label class="block text-sm font-bold text-slate-600 mb-2">Ano</label>
+            <select id="ano" class="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg">
+                <!-- Preenchido via JS -->
+            </select>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3" id="meses-container">
+            <!-- Botões dos meses gerados via JS -->
+        </div>
+        <p class="text-xs text-slate-500 mt-4">
+            NF-e e NFC-e: XMLs ou DANFEs por modalidade, ou <strong>Ambos</strong> (pastas separadas). Até 30.000 documentos por download.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const anoSelect = document.getElementById('ano');
+    const container = document.getElementById('meses-container');
+    const meses = [
+        { n: 1, nome: 'Janeiro' }, { n: 2, nome: 'Fevereiro' }, { n: 3, nome: 'Março' },
+        { n: 4, nome: 'Abril' }, { n: 5, nome: 'Maio' }, { n: 6, nome: 'Junho' },
+        { n: 7, nome: 'Julho' }, { n: 8, nome: 'Agosto' }, { n: 9, nome: 'Setembro' },
+        { n: 10, nome: 'Outubro' }, { n: 11, nome: 'Novembro' }, { n: 12, nome: 'Dezembro' }
+    ];
+
+    const anoAtual = new Date().getFullYear();
+    for (let a = anoAtual; a >= anoAtual - 5; a--) {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        if (a === anoAtual) opt.selected = true;
+        anoSelect.appendChild(opt);
+    }
+
+    function baixarMes(ano, mes, tipo) {
+        const url = `/api/notas/download-mes?ano=${ano}&mes=${mes}&tipo=${tipo}`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `notas_${ano}_${String(mes).padStart(2, '0')}_${tipo}.zip`;
+        a.click();
+    }
+
+    window.baixarMes = baixarMes;
+
+    function renderMeses() {
+        const ano = parseInt(anoSelect.value, 10);
+        container.innerHTML = '';
+        meses.forEach(m => {
+            const card = document.createElement('div');
+            card.className = 'border border-slate-200 rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition';
+            card.innerHTML = `
+                <p class="text-sm font-bold text-slate-700 mb-3">${m.nome} ${ano}</p>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" onclick="window.baixarMes(${ano}, ${m.n}, 'xml_nfe')" class="px-2 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition" title="Só XMLs de NFe">XMLs NFe</button>
+                    <button type="button" onclick="window.baixarMes(${ano}, ${m.n}, 'xml_nfce')" class="px-2 py-1.5 text-xs font-medium bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition" title="Só XMLs de NFCe">XMLs NFCe</button>
+                    <button type="button" onclick="window.baixarMes(${ano}, ${m.n}, 'danfe_nfe')" class="px-2 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition" title="Só DANFEs de NFe">DANFEs NFe</button>
+                    <button type="button" onclick="window.baixarMes(${ano}, ${m.n}, 'danfe_nfce')" class="px-2 py-1.5 text-xs font-medium bg-violet-600 text-white rounded-lg hover:bg-violet-700 transition" title="Só DANFEs de NFCe">DANFEs NFCe</button>
+                    <button type="button" onclick="window.baixarMes(${ano}, ${m.n}, 'todos')" class="px-2 py-1.5 text-xs font-medium bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition" title="ZIP com 4 pastas">Ambos</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    window.baixarMes = baixarMes;
+    anoSelect.addEventListener('change', renderMeses);
+    renderMeses();
+})();
+</script>
+{% endblock %}

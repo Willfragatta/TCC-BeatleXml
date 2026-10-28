@@ -1,0 +1,397 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Empresas - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+        <div>
+            <h2 class="text-xl font-bold text-slate-800">Empresas Cadastradas</h2>
+            <p class="text-sm text-slate-500">Gerencie suas empresas e certificados</p>
+        </div>
+        <button onclick="abrirModalCadastro()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-lg flex items-center">
+            <i class="fas fa-plus mr-2"></i> Nova Empresa
+        </button>
+    </div>
+
+    <div id="empresas-container" class="p-6">
+        <p class="text-gray-500 text-center py-8">Carregando empresas...</p>
+    </div>
+</div>
+
+<!-- Modal de cadastro/edição -->
+{% include "empresas/modal_empresa.html" %}
+
+<!-- Modal Importar XML -->
+<div id="modal-importar-xml" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-slate-800">Importar XML</h2>
+            <button type="button" onclick="fecharModalImportarXml()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-sm text-slate-600">Selecione um ou mais arquivos XML. As notas serão associadas à empresa correta (destinatário). Resumos serão vinculados à empresa selecionada.</p>
+            <input type="file" id="importar-xml-arquivos" accept=".xml" multiple class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm">
+            <div id="importar-xml-resultado" class="hidden text-sm space-y-2 pt-2 border-t border-slate-100"></div>
+        </div>
+        <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end space-x-3">
+            <button type="button" onclick="fecharModalImportarXml()" class="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg">Cancelar</button>
+            <button type="button" id="btn-importar-xml-enviar" onclick="enviarImportarXml()" class="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg shadow-lg">
+                <i class="fas fa-file-import mr-2"></i> Importar
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let empresasData = [];
+
+async function carregarEmpresas() {
+    try {
+        const res = await fetch('/api/empresas/');
+        if (!res.ok) throw new Error('Erro ao carregar empresas');
+        
+        empresasData = await res.json();
+        renderizarEmpresas();
+    } catch (error) {
+        console.error('Erro:', error);
+        document.getElementById('empresas-container').innerHTML = 
+            '<p class="text-red-500 text-center py-8">Erro ao carregar empresas</p>';
+    }
+}
+
+function renderizarEmpresas() {
+    const container = document.getElementById('empresas-container');
+    
+    if (empresasData.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <i class="fas fa-building text-gray-300 text-6xl mb-4"></i>
+                <p class="text-gray-500 mb-4">Nenhuma empresa cadastrada</p>
+                <button onclick="abrirModalCadastro()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">
+                    Cadastrar Primeira Empresa
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            ${empresasData.map(emp => {
+                const ambienteBadge = emp.ambiente === '1' 
+                    ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">PRODUÇÃO</span>'
+                    : '<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-bold">HOMOLOGAÇÃO</span>';
+                
+                let certificadoBadge = '';
+                if (!emp.tem_certificado) {
+                    certificadoBadge = '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">Sem Certificado</span>';
+                } else if (emp.dias_para_vencer !== null) {
+                    if (emp.dias_para_vencer < 0) {
+                        certificadoBadge = '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">VENCIDO</span>';
+                    } else if (emp.dias_para_vencer <= 7) {
+                        certificadoBadge = `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">Vence em ${emp.dias_para_vencer} dias</span>`;
+                    } else if (emp.dias_para_vencer <= 30) {
+                        certificadoBadge = `<span class="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs">Vence em ${emp.dias_para_vencer} dias</span>`;
+                    } else {
+                        certificadoBadge = '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">Válido</span>';
+                    }
+                }
+                
+                const bloqueioInfo = emp.bloqueio_656_ate 
+                    ? `<p class="text-xs text-red-600 mt-2"><i class="fas fa-lock mr-1"></i> Bloqueado até ${new Date(emp.bloqueio_656_ate).toLocaleString('pt-BR')}</p>`
+                    : '';
+                
+                return `
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-lg transition">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-800">${emp.razao_social}</h3>
+                                <p class="text-sm text-gray-500 font-mono">${emp.cnpj}</p>
+                            </div>
+                            ${ambienteBadge}
+                        </div>
+                        
+                        <div class="space-y-2 mb-4">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-600">UF:</span>
+                                <span class="font-bold">${emp.uf_autor}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-600">Último NSU:</span>
+                                <span class="font-mono">${emp.ultimo_nsu}</span>
+                            </div>
+                            ${emp.ultima_consulta ? `
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-600">Última Sync:</span>
+                                    <span class="text-xs">${formatarTempoDecorrido(new Date(emp.ultima_consulta))}</span>
+                                </div>
+                            ` : '<div class="flex items-center justify-between text-sm"><span class="text-gray-600">Última Sync:</span><span class="text-xs text-gray-400">Nunca</span></div>'}
+                        </div>
+                        
+                        <div class="mb-4">
+                            ${certificadoBadge}
+                        </div>
+                        
+                        ${bloqueioInfo}
+                        
+                        <div class="flex space-x-2 mt-4">
+                            <button onclick="editarEmpresa(${emp.id})" 
+                                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold">
+                                <i class="fas fa-edit mr-1"></i> Editar
+                            </button>
+                            <button onclick="uploadCertificado(${emp.id})" 
+                                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold">
+                                <i class="fas fa-upload mr-1"></i> Certificado
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <button onclick="importarXmlEmpresa(${emp.id})"
+                                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-bold">
+                                <i class="fas fa-file-import mr-1"></i> Importar XML
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function abrirModalCadastro() {
+    document.getElementById('modal-empresa').classList.remove('hidden');
+    document.getElementById('modal-empresa').classList.add('flex');
+    document.getElementById('form-empresa').reset();
+    document.getElementById('modal-titulo').textContent = 'Nova Empresa';
+    document.getElementById('empresa-id').value = '';
+}
+
+function editarEmpresa(id) {
+    const emp = empresasData.find(e => e.id === id);
+    if (!emp) return;
+    
+    document.getElementById('empresa-id').value = emp.id;
+    document.getElementById('empresa-cnpj').value = emp.cnpj;
+    document.getElementById('empresa-cnpj').disabled = true;
+    document.getElementById('empresa-razao').value = emp.razao_social;
+    document.getElementById('empresa-ambiente').value = emp.ambiente;
+    document.getElementById('empresa-uf').value = emp.uf_autor;
+    
+    document.getElementById('modal-titulo').textContent = 'Editar Empresa';
+    document.getElementById('modal-empresa').classList.remove('hidden');
+    document.getElementById('modal-empresa').classList.add('flex');
+}
+
+function uploadCertificado(id) {
+    const emp = empresasData.find(e => e.id === id);
+    if (!emp) return;
+    
+    document.getElementById('certificado-empresa-id').value = id;
+    document.getElementById('modal-certificado').classList.remove('hidden');
+    document.getElementById('modal-certificado').classList.add('flex');
+}
+
+let empresaIdImportarXml = null;
+
+function importarXmlEmpresa(id) {
+    empresaIdImportarXml = id;
+    document.getElementById('importar-xml-arquivos').value = '';
+    document.getElementById('importar-xml-resultado').classList.add('hidden');
+    document.getElementById('importar-xml-resultado').innerHTML = '';
+    document.getElementById('modal-importar-xml').classList.remove('hidden');
+    document.getElementById('modal-importar-xml').classList.add('flex');
+}
+
+function fecharModalImportarXml() {
+    document.getElementById('modal-importar-xml').classList.add('hidden');
+    document.getElementById('modal-importar-xml').classList.remove('flex');
+    empresaIdImportarXml = null;
+}
+
+async function enviarImportarXml() {
+    if (!empresaIdImportarXml) return;
+    const input = document.getElementById('importar-xml-arquivos');
+    const files = input.files;
+    if (!files || files.length === 0) {
+        mostrarToast('Selecione pelo menos um arquivo XML', 'warning');
+        return;
+    }
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+        formData.append('arquivos', files[i]);
+    }
+    const btn = document.getElementById('btn-importar-xml-enviar');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Importando...';
+    const resultadoEl = document.getElementById('importar-xml-resultado');
+    resultadoEl.classList.add('hidden');
+    resultadoEl.innerHTML = '';
+    try {
+        const res = await fetch(`/api/empresas/${empresaIdImportarXml}/importar-manual`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json().catch(() => ({}));
+        resultadoEl.classList.remove('hidden');
+        const esc = (t) => {
+            const d = document.createElement('div');
+            d.textContent = t == null ? '' : String(t);
+            return d.innerHTML;
+        };
+        if (!res.ok) {
+            resultadoEl.innerHTML = '<p class="text-red-600">Erro ao importar. ' + esc(data.detail || res.statusText) + '</p>';
+            mostrarToast('Erro ao importar notas', 'error');
+        } else {
+            const porEmpresa = data.importados_por_empresa || [];
+            const nao = data.nao_pertencentes || 0;
+            const erros = data.erros || 0;
+            let html = '';
+            if (porEmpresa.length > 0) {
+                html += '<p class="font-bold text-emerald-700">Importados:</p><ul class="list-disc list-inside text-slate-700">';
+                porEmpresa.forEach(function (item) {
+                    html += '<li>' + esc(item.quantidade) + ' nota(s) para ' + esc(item.razao_social || ('Empresa ' + item.empresa_id)) + '</li>';
+                });
+                html += '</ul>';
+            }
+            if (nao > 0) {
+                html += '<p class="text-amber-700 font-bold mt-2">' + nao + ' nota(s) não pertencem a nenhuma empresa cadastrada para este usuário.</p>';
+            }
+            if (erros > 0) {
+                html += '<p class="text-slate-600 mt-1">' + erros + ' arquivo(s) com erro.</p>';
+            }
+            if (!html) {
+                html = '<p class="text-slate-600">Nenhuma nota importada.</p>';
+            }
+            resultadoEl.innerHTML = html;
+            const total = porEmpresa.reduce(function (s, i) { return s + i.quantidade; }, 0);
+            if (total > 0) {
+                mostrarToast(total + ' nota(s) importada(s).', 'success');
+            }
+            if (nao > 0) {
+                mostrarToast(nao + ' nota(s) não pertencem a nenhuma empresa sua.', 'warning');
+            }
+        }
+    } catch (err) {
+        resultadoEl.classList.remove('hidden');
+        resultadoEl.innerHTML = '<p class="text-red-600">Erro de conexão.</p>';
+        mostrarToast('Erro ao importar notas', 'error');
+    }
+    btn.disabled = false;
+    btn.innerHTML = origText;
+}
+
+// Salvar empresa
+document.getElementById('form-empresa')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('empresa-id').value;
+    const data = {
+        cnpj: document.getElementById('empresa-cnpj').value,
+        razao_social: document.getElementById('empresa-razao').value,
+        ambiente: document.getElementById('empresa-ambiente').value,
+        uf_autor: document.getElementById('empresa-uf').value
+    };
+    
+    try {
+        const url = id ? `/api/empresas/${id}` : '/api/empresas/';
+        const method = id ? 'PUT' : 'POST';
+        
+        const res = await fetch(url, {
+            method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+            mostrarToast('Empresa salva com sucesso!', 'success');
+            fecharModalEmpresa();
+            carregarEmpresas();
+        } else {
+            const error = await res.json();
+            mostrarToast(error.detail || 'Erro ao salvar empresa', 'error');
+        }
+    } catch (error) {
+        mostrarToast('Erro ao salvar empresa', 'error');
+        console.error(error);
+    }
+});
+
+// Upload certificado
+document.getElementById('form-certificado')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const empresaId = document.getElementById('certificado-empresa-id').value;
+    const arquivo = document.getElementById('certificado-arquivo').files[0];
+    const senha = document.getElementById('certificado-senha').value;
+    
+    if (!arquivo) {
+        mostrarToast('Selecione um arquivo', 'warning');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('arquivo', arquivo);
+    formData.append('senha', senha);
+    
+    try {
+        const res = await fetch(`/api/empresas/${empresaId}/certificado`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (res.ok) {
+            mostrarToast('Certificado salvo com sucesso!', 'success');
+            fecharModalCertificado();
+            carregarEmpresas();
+        } else {
+            const error = await res.json();
+            mostrarToast(error.detail || 'Erro ao salvar certificado', 'error');
+        }
+    } catch (error) {
+        mostrarToast('Erro ao salvar certificado', 'error');
+        console.error(error);
+    }
+});
+
+function fecharModalEmpresa() {
+    document.getElementById('modal-empresa').classList.add('hidden');
+    document.getElementById('modal-empresa').classList.remove('flex');
+    document.getElementById('form-empresa').reset();
+    document.getElementById('empresa-cnpj').disabled = false;
+}
+
+function fecharModalCertificado() {
+    document.getElementById('modal-certificado').classList.add('hidden');
+    document.getElementById('modal-certificado').classList.remove('flex');
+    document.getElementById('form-certificado').reset();
+}
+
+function formatarTempoDecorrido(data) {
+    const agora = new Date();
+    const diffMs = agora - data;
+    const diffSegundos = Math.floor(diffMs / 1000);
+    const diffMinutos = Math.floor(diffSegundos / 60);
+    const diffHoras = Math.floor(diffMinutos / 60);
+    const diffDias = Math.floor(diffHoras / 24);
+    
+    if (diffDias > 0) {
+        return `há ${diffDias} ${diffDias === 1 ? 'dia' : 'dias'}`;
+    } else if (diffHoras > 0) {
+        return `há ${diffHoras} ${diffHoras === 1 ? 'hora' : 'horas'}`;
+    } else if (diffMinutos > 0) {
+        return `há ${diffMinutos} ${diffMinutos === 1 ? 'minuto' : 'minutos'}`;
+    } else {
+        return 'agora mesmo';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', carregarEmpresas);
+</script>
+{% endblock %}
+

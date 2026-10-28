@@ -1,0 +1,437 @@
+{% extends "suporte/base.html" %}
+
+{% block title %}Atendimento - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-2">Atendimento</h2>
+        <p class="text-sm text-slate-500 mb-3">Escolha o usuário. As empresas, o monitor e os logs abaixo são só dele.</p>
+        <input id="busca-usuario" type="search" autocomplete="off" placeholder="Nome ou e-mail"
+               class="w-full border rounded px-3 py-2 mb-2">
+        <div id="usuarios-resultado" class="border rounded divide-y max-h-48 overflow-auto text-sm"></div>
+        <p id="usuario-escolhido" class="text-sm text-slate-600 mt-2">Nenhum usuário selecionado.</p>
+    </div>
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Monitor Uploader e sincronizador</h2>
+        <p class="text-sm text-slate-500 mb-3">Status do Beatle Uploader (online = heartbeat nos últimos 10 min)</p>
+        <div class="overflow-x-auto mb-4">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-slate-500">
+                        <th class="p-2">Empresa</th>
+                        <th class="p-2">Status</th>
+                        <th class="p-2">Último heartbeat</th>
+                        <th class="p-2">Pasta</th>
+                        <th class="p-2">Versão</th>
+                        <th class="p-2">Sincronizador</th>
+                    </tr>
+                </thead>
+                <tbody id="uploader-status-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Empresas (diagnóstico)</h2>
+        <input id="busca-empresa" type="search" autocomplete="off"
+               class="w-full border rounded px-3 py-2 mb-3"
+               placeholder="Buscar por nome, CNPJ ou ID">
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-slate-500">
+                        <th class="p-2">ID</th>
+                        <th class="p-2">Empresa</th>
+                        <th class="p-2">CNPJ</th>
+                        <th class="p-2">Ult. NSU</th>
+                        <th class="p-2">Max NSU</th>
+                        <th class="p-2">Bloqueios</th>
+                        <th class="p-2">Certificado</th>
+                        <th class="p-2">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="empresas-tbody" class="text-slate-800"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Ações rápidas</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-600 mb-1">Empresa ID</label>
+                    <input id="acao-empresa-id" type="number" class="w-full border rounded px-3 py-2" placeholder="Ex: 1">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-600 mb-1">Ult. NSU</label>
+                    <input id="acao-ultimo-nsu" type="text" class="w-full border rounded px-3 py-2" placeholder="000000000000000">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-600 mb-1">Max NSU</label>
+                    <input id="acao-max-nsu" type="text" class="w-full border rounded px-3 py-2" placeholder="000000000000000">
+                </div>
+                <div class="flex gap-2">
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded" onclick="ajustarNsu()">Ajustar NSU (NFe)</button>
+                    <button class="bg-slate-700 text-white px-4 py-2 rounded" onclick="consultaLeve()">Consulta leve NFe</button>
+                </div>
+                <div class="pt-4 border-t">
+                    <label class="block text-sm text-slate-600 mb-1">Bloqueio manual (minutos)</label>
+                    <input id="acao-bloqueio-min" type="number" class="w-full border rounded px-3 py-2" placeholder="30">
+                    <div class="flex gap-2 mt-2">
+                        <button class="bg-amber-600 text-white px-4 py-2 rounded" onclick="bloquearManual()">Aplicar bloqueio</button>
+                        <button class="bg-emerald-600 text-white px-4 py-2 rounded" onclick="liberarManual()">Remover bloqueio</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Logs de suporte</h2>
+            <div class="flex gap-2 mb-3">
+                <input id="filtro-empresa" type="number" class="border rounded px-3 py-2 w-32" placeholder="Empresa ID">
+                <select id="filtro-nivel" class="border rounded px-3 py-2">
+                    <option value="">Nível</option>
+                    <option value="WARNING">WARNING</option>
+                    <option value="ERROR">ERROR</option>
+                    <option value="INFO">INFO</option>
+                </select>
+                <input id="filtro-texto" type="text" class="border rounded px-3 py-2 flex-1" placeholder="Buscar mensagem">
+                <button class="bg-slate-800 text-white px-4 py-2 rounded" onclick="carregarLogs()">Filtrar</button>
+            </div>
+            <div class="max-h-96 overflow-auto border rounded">
+                <ul id="logs-lista" class="divide-y text-sm"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Timeline de sincronização</h2>
+        <div class="flex gap-2 mb-3">
+            <input id="timeline-empresa" type="number" class="border rounded px-3 py-2 w-32" placeholder="Empresa ID">
+            <input id="timeline-base" type="text" class="border rounded px-3 py-2 w-40" placeholder="CNPJ base">
+            <input id="timeline-ciclo" type="text" class="border rounded px-3 py-2 flex-1" placeholder="Ciclo ID">
+            <button class="bg-slate-800 text-white px-4 py-2 rounded" onclick="carregarTimeline()">Filtrar</button>
+        </div>
+        <div class="max-h-96 overflow-auto border rounded">
+            <ul id="timeline-lista" class="divide-y text-sm"></ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function escHtml(t) {
+    const d = document.createElement('div');
+    d.textContent = t == null ? '' : String(t);
+    return d.innerHTML;
+}
+let usuarioAtendimentoId = null;
+let usuariosAtendimento = [];
+function nomeEmpresa(id) {
+    const emp = (empresasSuporte || []).find(e => Number(e.id) === Number(id));
+    if (!emp) return 'Empresa ' + (id || '-');
+    return (emp.razao_social || 'Empresa') + ' (' + (emp.cnpj || id) + ')';
+}
+async function carregarUploaderStatus() {
+    const tbody = document.getElementById('uploader-status-tbody');
+    if (!tbody) return;
+    if (!usuarioAtendimentoId) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-2 text-slate-500">Escolha um usuário.</td></tr>';
+        return;
+    }
+    try {
+        const qs = usuarioAtendimentoId ? ('?usuario_id=' + usuarioAtendimentoId) : '';
+        const res = await fetch('/api/suporte/uploader-status' + qs);
+        const data = await res.json();
+        tbody.innerHTML = data.map(e => {
+            const status = e.online
+                ? '<span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700">Online</span>'
+                : '<span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">Offline</span>';
+            const dt = e.ultimo_heartbeat ? new Date(e.ultimo_heartbeat).toLocaleString('pt-BR') : '-';
+            const sync = e.contador_online
+                ? '<span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700">Online</span>'
+                : '<span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">Offline</span>';
+            const syncDt = e.contador_ultimo_heartbeat ? new Date(e.contador_ultimo_heartbeat).toLocaleString('pt-BR') : '-';
+            return `<tr>
+                <td class="p-2">${escHtml(e.razao_social || '-')} (${escHtml(e.cnpj || '-')})</td>
+                <td class="p-2">${status}</td>
+                <td class="p-2">${escHtml(dt)}</td>
+                <td class="p-2 text-xs truncate max-w-xs" title="${escHtml(e.pasta_monitorada || '')}">${escHtml(e.pasta_monitorada || '-')}</td>
+                <td class="p-2">${escHtml(e.versao || '-')}</td>
+                <td class="p-2">${sync}<div class="text-xs text-slate-500">${escHtml(syncDt)} ${escHtml(e.contador_versao || '')}</div></td>
+            </tr>`;
+        }).join('') || '<tr><td colspan="6" class="p-2 text-slate-500">Nenhuma empresa</td></tr>';
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-2 text-red-500">Erro ao carregar</td></tr>';
+    }
+}
+
+let empresasSuporte = [];
+let empresaSelecionadaId = null;
+
+function filtrarEmpresasSuporte() {
+    const tbody = document.getElementById('empresas-tbody');
+    const q = (document.getElementById('busca-empresa')?.value || '').trim().toLowerCase();
+    tbody.innerHTML = '';
+    if (!usuarioAtendimentoId) {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-slate-500">Escolha um usuário para ver as empresas dele.</td></tr>';
+        return;
+    }
+    const lista = !q ? empresasSuporte.slice() : empresasSuporte.filter(emp => {
+        const id = String(emp.id || '');
+        const nome = String(emp.razao_social || '').toLowerCase();
+        const cnpj = String(emp.cnpj || '').toLowerCase();
+        return id.includes(q) || nome.includes(q) || cnpj.includes(q);
+    });
+    if (!lista.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-slate-500">Nenhuma empresa encontrada.</td></tr>';
+        return;
+    }
+    lista.forEach(emp => {
+        const bloqueio = [];
+        if (emp.bloqueio_656_ate) bloqueio.push('656');
+        if (emp.bloqueio_manual_ate) bloqueio.push('Manual');
+        const cert = emp.tem_certificado ? (emp.dias_para_vencer !== null ? `${emp.dias_para_vencer} dias` : 'OK') : 'Sem';
+        const tr = document.createElement('tr');
+        if (Number(emp.id) === Number(empresaSelecionadaId)) {
+            tr.className = 'bg-blue-50';
+        }
+        const nsu = String(emp.ultimo_nsu || '');
+        const maxNsu = String(emp.max_nsu_conhecido || '');
+        tr.innerHTML = `
+            <td class="p-2">${escHtml(emp.id)}</td>
+            <td class="p-2">${escHtml(emp.razao_social || '-')}</td>
+            <td class="p-2">${escHtml(emp.cnpj || '-')}</td>
+            <td class="p-2">${escHtml(nsu || '-')}</td>
+            <td class="p-2">${escHtml(maxNsu || '-')}</td>
+            <td class="p-2">${escHtml(bloqueio.join(', ') || 'OK')}</td>
+            <td class="p-2">${escHtml(cert)}</td>
+            <td class="p-2">
+                <button type="button" class="text-blue-600 btn-sel-emp"
+                    data-emp-id="${Number(emp.id)}"
+                    data-nsu="${escHtml(nsu)}"
+                    data-max-nsu="${escHtml(maxNsu)}">Selecionar</button>
+            </td>
+        `;
+        tr.querySelector('.btn-sel-emp').addEventListener('click', (ev) => {
+            const b = ev.currentTarget;
+            preencherEmpresa(
+                Number(b.dataset.empId),
+                b.dataset.nsu || '',
+                b.dataset.maxNsu || '',
+                b.dataset.nfseOn === '1',
+                b.dataset.nsuNfse || '0',
+                b.dataset.maxNfse || '',
+                b.dataset.ambNfse || 'restrita'
+            );
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+async function carregarEmpresas() {
+    const tbody = document.getElementById('empresas-tbody');
+    tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-slate-500">Carregando...</td></tr>';
+    if (!usuarioAtendimentoId) {
+        empresasSuporte = [];
+        filtrarEmpresasSuporte();
+        return;
+    }
+    const resp = await fetch('/api/suporte/empresas?usuario_id=' + usuarioAtendimentoId);
+    empresasSuporte = await resp.json();
+    filtrarEmpresasSuporte();
+}
+
+function preencherEmpresa(id, ult, max, nfseOn, nsuNfse, maxNfse, ambNfse) {
+    empresaSelecionadaId = id;
+    document.getElementById('acao-empresa-id').value = id;
+    document.getElementById('acao-ultimo-nsu').value = ult;
+    document.getElementById('acao-max-nsu').value = max;
+    const chk = document.getElementById('acao-modulo-nfse');
+    if (chk) chk.checked = !!nfseOn;
+    const uNfse = document.getElementById('acao-ultimo-nsu-nfse');
+    const mNfse = document.getElementById('acao-max-nsu-nfse');
+    const aNfse = document.getElementById('acao-ambiente-nfse');
+    if (uNfse) uNfse.value = nsuNfse || '0';
+    if (mNfse) mNfse.value = maxNfse || '';
+    if (aNfse) aNfse.value = ambNfse || 'restrita';
+    document.getElementById('filtro-empresa').value = id;
+    filtrarEmpresasSuporte();
+    carregarLogs();
+}
+
+async function ajustarNsu() {
+    const empresaId = document.getElementById('acao-empresa-id').value;
+    if (!empresaId) return alert('Informe o ID da empresa');
+    const payload = {
+        ultimo_nsu: document.getElementById('acao-ultimo-nsu').value || null,
+        max_nsu_conhecido: document.getElementById('acao-max-nsu').value || null
+    };
+    const resp = await fetch(`/api/suporte/empresa/${empresaId}/ajustar-nsu`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (!resp.ok) return alert(data.detail || 'Erro ao ajustar NSU');
+    await carregarEmpresas();
+    await carregarLogs();
+}
+
+async function consultaLeve() {
+    const empresaId = document.getElementById('acao-empresa-id').value;
+    if (!empresaId) return alert('Informe o ID da empresa');
+    const resp = await fetch(`/api/suporte/empresa/${empresaId}/consulta-leve`, {method: 'POST'});
+    const data = await resp.json();
+    if (!resp.ok) return alert(data.detail || 'Erro na consulta leve');
+    await carregarEmpresas();
+    await carregarLogs();
+}
+
+async function bloquearManual() {
+    const empresaId = document.getElementById('acao-empresa-id').value;
+    const minutos = document.getElementById('acao-bloqueio-min').value;
+    if (!empresaId || !minutos) return alert('Informe empresa e minutos');
+    const resp = await fetch(`/api/suporte/empresa/${empresaId}/bloqueio-manual`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({minutos: Number(minutos)})
+    });
+    const data = await resp.json();
+    if (!resp.ok) return alert(data.detail || 'Erro ao bloquear');
+    await carregarEmpresas();
+    await carregarLogs();
+}
+
+async function liberarManual() {
+    const empresaId = document.getElementById('acao-empresa-id').value;
+    if (!empresaId) return alert('Informe o ID da empresa');
+    const resp = await fetch(`/api/suporte/empresa/${empresaId}/liberar-bloqueio-manual`, {method: 'POST'});
+    const data = await resp.json();
+    if (!resp.ok) return alert(data.detail || 'Erro ao liberar');
+    await carregarEmpresas();
+    await carregarLogs();
+}
+
+async function carregarLogs() {
+    const empresaId = document.getElementById('filtro-empresa').value;
+    const nivel = document.getElementById('filtro-nivel').value;
+    const texto = document.getElementById('filtro-texto').value;
+    const params = new URLSearchParams();
+    if (empresaId) params.append('empresa_id', empresaId);
+    if (nivel) params.append('nivel', nivel);
+    if (texto) params.append('texto', texto);
+    const resp = await fetch(`/api/suporte/logs?${params.toString()}`);
+    const data = await resp.json();
+    const lista = document.getElementById('logs-lista');
+    lista.innerHTML = '';
+    data.forEach(log => {
+        const li = document.createElement('li');
+        li.className = 'p-2';
+        let ctx = {};
+        try { ctx = typeof log.contexto === 'string' ? JSON.parse(log.contexto || '{}') : (log.contexto || {}); } catch (e) {}
+        const nsuCiclo = (ctx.nsu_inicio || ctx.nsu_fim)
+            ? ` · NSU ${ctx.nsu_inicio || '?'} → ${ctx.nsu_fim || log.ult_nsu || '?'}`
+            : (log.ult_nsu ? ` · ultNSU ${log.ult_nsu}` : '');
+        const pulo = ctx.possivel_pulo
+            ? ' <span class="text-amber-700 font-semibold">possível pulo</span>'
+            : '';
+        li.innerHTML = `<div class="text-slate-500 text-xs">${log.created_at} | ${log.nivel} | ${log.tipo || '-'} | ${escHtml(nomeEmpresa(log.empresa_id))}${nsuCiclo}${pulo}</div>
+                        <div>${log.mensagem}</div>`;
+        lista.appendChild(li);
+    });
+}
+
+async function carregarTimeline() {
+    const empresaId = document.getElementById('timeline-empresa').value;
+    const cnpjBase = document.getElementById('timeline-base').value;
+    const cicloId = document.getElementById('timeline-ciclo').value;
+    const params = new URLSearchParams();
+    if (empresaId) params.append('empresa_id', empresaId);
+    if (cnpjBase) params.append('cnpj_base', cnpjBase);
+    if (cicloId) params.append('ciclo_id', cicloId);
+    const resp = await fetch(`/api/suporte/timeline?${params.toString()}`);
+    const data = await resp.json();
+    const lista = document.getElementById('timeline-lista');
+    lista.innerHTML = '';
+    data.forEach(log => {
+        let contexto = {};
+        try {
+            contexto = log.contexto ? JSON.parse(log.contexto) : {};
+        } catch (e) {
+            contexto = {};
+        }
+        const base = contexto.cnpj_base || '-';
+        const ciclo = contexto.ciclo_id ? contexto.ciclo_id.slice(0, 8) : '-';
+        const status = contexto.status || '-';
+        const nsu = (contexto.nsu_inicio || contexto.nsu_fim)
+            ? `NSU ${contexto.nsu_inicio || '?'} → ${contexto.nsu_fim || '?'}`
+            : '';
+        const li = document.createElement('li');
+        li.className = 'p-2';
+        li.innerHTML = `<div class="text-slate-500 text-xs">${log.created_at} | ${escHtml(nomeEmpresa(log.empresa_id))} | Base ${base} | Ciclo ${ciclo}</div>
+                        <div class="font-medium">${status}${nsu ? ' · ' + nsu : ''}${contexto.possivel_pulo ? ' · <span class="text-amber-700">pulo?</span>' : ''}</div>
+                        <div>${log.mensagem}</div>`;
+        lista.appendChild(li);
+    });
+}
+
+function desenharUsuariosAtendimento() {
+    const box = document.getElementById('usuarios-resultado');
+    const q = (document.getElementById('busca-usuario')?.value || '').trim().toLowerCase();
+    if (!box) return;
+    if (!q) {
+        box.innerHTML = '<p class="p-3 text-slate-500">Digite nome ou e-mail.</p>';
+        return;
+    }
+    const lista = usuariosAtendimento.filter(u => {
+        const nome = String(u.nome_completo || '').toLowerCase();
+        const email = String(u.email || '').toLowerCase();
+        return nome.includes(q) || email.includes(q);
+    }).slice(0, 20);
+    if (!lista.length) {
+        box.innerHTML = '<p class="p-3 text-slate-500">Nenhum usuário encontrado.</p>';
+        return;
+    }
+    box.innerHTML = lista.map(u =>
+        `<button type="button" data-uid="${u.id}" class="w-full text-left px-3 py-2 hover:bg-blue-50">
+            <span class="font-medium">${escHtml(u.nome_completo || u.email)}</span>
+            <span class="block text-xs text-slate-500">${escHtml(u.email)} · ${escHtml(u.role || 'cliente')}</span>
+        </button>`
+    ).join('');
+    box.querySelectorAll('button[data-uid]').forEach(btn => {
+        btn.addEventListener('click', () => escolherUsuarioAtendimento(Number(btn.getAttribute('data-uid'))));
+    });
+}
+
+function escolherUsuarioAtendimento(id) {
+    const u = usuariosAtendimento.find(item => item.id === id);
+    usuarioAtendimentoId = id;
+    const el = document.getElementById('usuario-escolhido');
+    if (el && u) {
+        el.textContent = 'Atendendo: ' + (u.nome_completo || u.email) + ' · ' + u.email;
+    }
+    carregarUploaderStatus();
+    carregarEmpresas();
+    carregarLogs();
+    carregarTimeline();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const buscaEmp = document.getElementById('busca-empresa');
+    if (buscaEmp) buscaEmp.addEventListener('input', filtrarEmpresasSuporte);
+    const buscaUsuario = document.getElementById('busca-usuario');
+    if (buscaUsuario) buscaUsuario.addEventListener('input', desenharUsuariosAtendimento);
+    fetch('/api/suporte/usuarios').then(r => r.json()).then(data => {
+        usuariosAtendimento = Array.isArray(data) ? data : [];
+    }).catch(() => {});
+    carregarUploaderStatus();
+    carregarEmpresas();
+    carregarLogs();
+    carregarTimeline();
+});
+</script>
+{% endblock %}

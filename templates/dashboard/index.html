@@ -1,0 +1,292 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Dashboard - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Alertas -->
+    <div id="alertas-container"></div>
+    
+    <!-- Cards de Estatísticas -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Notas no Mês</p>
+                    <p id="total-notas-mes" class="text-3xl font-bold text-blue-600 mt-2">-</p>
+                </div>
+                <div class="bg-blue-100 p-4 rounded-full">
+                    <i class="fas fa-file-invoice text-blue-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Valor Total</p>
+                    <p id="valor-total-mes" class="text-3xl font-bold text-emerald-600 mt-2">-</p>
+                </div>
+                <div class="bg-emerald-100 p-4 rounded-full">
+                    <i class="fas fa-dollar-sign text-emerald-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Pendentes</p>
+                    <p id="notas-sem-etiqueta" class="text-3xl font-bold text-orange-600 mt-2">-</p>
+                    <p class="text-xs text-gray-500 mt-1">Sem etiqueta</p>
+                </div>
+                <div class="bg-orange-100 p-4 rounded-full">
+                    <i class="fas fa-exclamation-circle text-orange-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Última Sincronização</p>
+                    <p id="ultima-sync" class="text-lg font-bold text-slate-700 mt-2">-</p>
+                    <p id="ultima-sync-status" class="text-sm text-slate-600 mt-1"></p>
+                </div>
+                <div class="bg-slate-100 p-4 rounded-full">
+                    <i class="fas fa-sync-alt text-slate-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">A pagar (hoje)</p>
+                    <p id="financeiro-a-vencer-hoje" class="text-2xl font-bold text-amber-600 mt-2">-</p>
+                    <a href="/financeiro" class="text-sm font-bold text-blue-600 hover:text-blue-800 mt-1 inline-block">Ver Financeiro →</a>
+                </div>
+                <div class="bg-amber-100 p-4 rounded-full">
+                    <i class="fas fa-money-check-alt text-amber-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Gráfico de Notas por Dia -->
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Notas por Dia (Últimos 30 dias)</h3>
+            <canvas id="grafico-notas-dia" height="200"></canvas>
+        </div>
+        
+        <!-- Top Fornecedores -->
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800">Top 10 Fornecedores</h3>
+                <select id="filtro-fornecedores" class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium">
+                    <option value="valor">Por Valor</option>
+                    <option value="quantidade">Por Quantidade</option>
+                </select>
+            </div>
+            <div id="top-fornecedores" class="space-y-3">
+                <p class="text-gray-500 text-center py-8">Carregando...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Últimas Notas -->
+    <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-100">
+            <h3 class="text-lg font-bold text-slate-800">Últimas Notas</h3>
+        </div>
+        <div class="p-6">
+            <a href="/notas" class="text-blue-600 hover:text-blue-800 font-bold">
+                Ver todas as notas →
+            </a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let graficoNotas = null;
+
+async function carregarDashboard() {
+    try {
+        const mesEl = document.getElementById('cartoes-mes');
+        const mes = mesEl && mesEl.value ? mesEl.value : '';
+        const qs = mes ? `?mes=${encodeURIComponent(mes)}` : '';
+        const res = await fetch('/api/dashboard/' + qs);
+        if (!res.ok) throw new Error('Erro ao carregar dashboard');
+        
+        const data = await res.json();
+        
+        // Atualizar cards
+        document.getElementById('total-notas-mes').textContent = data.total_notas_mes || 0;
+        document.getElementById('valor-total-mes').textContent = 
+            'R$ ' + (data.valor_total_mes || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+        document.getElementById('notas-sem-etiqueta').textContent = data.notas_sem_etiqueta || 0;
+        
+        if (data.ultima_sync) {
+            const dataSync = new Date(data.ultima_sync);
+            const agora = new Date();
+            const diffMs = agora - dataSync;
+            const diffSegundos = Math.floor(diffMs / 1000);
+            const diffMinutos = Math.floor(diffSegundos / 60);
+            const diffHoras = Math.floor(diffMinutos / 60);
+            const diffDias = Math.floor(diffHoras / 24);
+            
+            let tempoDecorrido = '';
+            if (diffDias > 0) {
+                tempoDecorrido = `há ${diffDias} ${diffDias === 1 ? 'dia' : 'dias'}`;
+            } else if (diffHoras > 0) {
+                tempoDecorrido = `há ${diffHoras} ${diffHoras === 1 ? 'hora' : 'horas'}`;
+            } else if (diffMinutos > 0) {
+                tempoDecorrido = `há ${diffMinutos} ${diffMinutos === 1 ? 'minuto' : 'minutos'}`;
+            } else {
+                tempoDecorrido = 'agora mesmo';
+            }
+            
+            document.getElementById('ultima-sync').textContent = tempoDecorrido;
+        } else {
+            document.getElementById('ultima-sync').textContent = 'Nunca';
+        }
+        const statusEl = document.getElementById('ultima-sync-status');
+        if (data.ultima_sync_mensagem) {
+            statusEl.textContent = data.ultima_sync_mensagem;
+            statusEl.classList.remove('hidden');
+        } else {
+            statusEl.textContent = '';
+        }
+        
+        // Totais Financeiro (A vencer hoje)
+        try {
+            const resFin = await fetch('/api/financeiro/parcelas?skip=0&limit=1');
+            if (resFin.ok) {
+                const dataFin = await resFin.json();
+                const v = (dataFin.totais && dataFin.totais.a_vencer_hoje) ? dataFin.totais.a_vencer_hoje : 0;
+                document.getElementById('financeiro-a-vencer-hoje').textContent = 
+                    'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            } else {
+                document.getElementById('financeiro-a-vencer-hoje').textContent = 'R$ 0,00';
+            }
+        } catch (e) {
+            document.getElementById('financeiro-a-vencer-hoje').textContent = 'R$ 0,00';
+        }
+
+        // Alertas
+        const alertasContainer = document.getElementById('alertas-container');
+        if (data.alertas && data.alertas.length > 0) {
+            alertasContainer.innerHTML = data.alertas.map(alerta => {
+                const cores = {
+                    'error': 'bg-red-100 border-red-400 text-red-700',
+                    'warning': 'bg-yellow-100 border-yellow-400 text-yellow-700',
+                    'info': 'bg-blue-100 border-blue-400 text-blue-700'
+                };
+                return `
+                    <div class="p-4 rounded-lg border ${cores[alerta.tipo] || cores.info} mb-4">
+                        <i class="fas fa-${alerta.tipo === 'error' ? 'exclamation-triangle' : 'info-circle'} mr-2"></i>
+                        ${alerta.mensagem}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            alertasContainer.innerHTML = '';
+        }
+        
+        // Gráfico de notas por dia
+        if (data.notas_por_dia && data.notas_por_dia.length > 0) {
+            const ctx = document.getElementById('grafico-notas-dia');
+            if (graficoNotas) graficoNotas.destroy();
+            
+            graficoNotas = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.notas_por_dia.map(d => d.data_formatada),
+                    datasets: [{
+                        label: 'Notas',
+                        data: data.notas_por_dia.map(d => d.total_notas),
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Top fornecedores
+        atualizarTopFornecedores(data);
+        
+    } catch (error) {
+        console.error('Erro ao carregar dashboard:', error);
+    }
+}
+
+function atualizarTopFornecedores(data) {
+    const filtro = document.getElementById('filtro-fornecedores').value;
+    const topFornecedores = document.getElementById('top-fornecedores');
+    const lista = filtro === 'valor' ? data.top_fornecedores_valor : data.top_fornecedores_qtd;
+    
+    if (lista && lista.length > 0) {
+        topFornecedores.innerHTML = lista.map((forn, idx) => `
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center">
+                    <span class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-3">
+                        ${idx + 1}
+                    </span>
+                    <div>
+                        <p class="font-semibold text-sm">${forn.nome}</p>
+                        <p class="text-xs text-gray-500">${forn.total_notas} nota(s)</p>
+                    </div>
+                </div>
+                <p class="font-bold text-blue-600">R$ ${forn.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+            </div>
+        `).join('');
+    } else {
+        topFornecedores.innerHTML = '<p class="text-gray-500 text-center py-8">Nenhum fornecedor encontrado</p>';
+    }
+}
+
+// Event listener para mudança de filtro
+document.getElementById('filtro-fornecedores')?.addEventListener('change', async function() {
+    try {
+        const res = await fetch('/api/dashboard/');
+        if (res.ok) {
+            const data = await res.json();
+            atualizarTopFornecedores(data);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar dashboard:', error);
+    }
+});
+
+// Carregar ao iniciar
+document.addEventListener('DOMContentLoaded', carregarDashboard);
+
+// Recarregar a cada 5 minutos
+setInterval(carregarDashboard, 5 * 60 * 1000);
+</script>
+{% endblock %}
+

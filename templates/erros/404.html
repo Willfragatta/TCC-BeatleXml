@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo or "Página não encontrada" }} — BeatleXML</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="/static/img/beatlexmlLogo.png">
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-4">
+    <div class="bg-white/95 backdrop-blur rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20 text-center">
+        <img src="/static/img/beatlexmlLogo.png" alt="BeatleXML" class="h-12 w-auto mx-auto mb-4">
+        <div class="mx-auto mb-4 w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center">
+            <i class="fas {{ icone or 'fa-compass' }} text-2xl text-slate-600"></i>
+        </div>
+        <p class="text-5xl font-black text-slate-200 mb-2">{{ codigo or 404 }}</p>
+        <h1 class="text-xl font-bold text-slate-800 mb-2">{{ titulo or "Página não encontrada" }}</h1>
+        <p class="text-slate-600 text-sm mb-6">
+            {{ mensagem or "O endereço que você tentou abrir não existe ou foi movido." }}
+        </p>
+        <div class="flex flex-col sm:flex-row gap-2 justify-center">
+            <a href="{{ cta_href or '/dashboard' }}"
+               class="inline-flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-5 rounded-lg transition">
+                <i class="fas fa-home mr-2"></i> {{ cta_label or "Ir ao painel" }}
+            </a>
+            <a href="/auth/login"
+               class="inline-flex items-center justify-center border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold py-3 px-5 rounded-lg transition">
+                Login
+            </a>
+        </div>
+        <p class="mt-6 text-xs text-slate-400">
+            Dúvidas? <a href="mailto:contato@beatlexml.com.br" class="underline">contato@beatlexml.com.br</a>
+        </p>
+    </div>
+</body>
+</html>

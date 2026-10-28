@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Beatle_XML{% endblock %}</title>
+    {% set og_title = og_title if og_title is defined else self.title() %}
+    {% if usuario is defined and usuario is not none %}
+        {% set meta_robots = 'noindex, nofollow' %}
+    {% endif %}
+    {% include "partials/meta.html" %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% if usuario is not defined or usuario is none %}
+        {% include "partials/gtag.html" %}
+        {% include "partials/recaptcha.html" %}
+    {% endif %}
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-100 font-sans text-gray-900">
+    {% if usuario is defined and usuario is not none %}
+        {% include "layout/header.html" %}
+        <div class="flex pt-16">
+            {% include "layout/sidebar.html" %}
+            <main class="flex-1 ml-64 p-6 min-w-0 max-w-full overflow-x-hidden">
+    {% endif %}
+    
+    {% block content %}{% endblock %}
+    
+    {% if usuario is defined and usuario is not none %}
+            </main>
+        </div>
+    {% endif %}
+    
+    {% include "components/toast.html" %}
+    <script src="/static/js/beatle_fetch.js"></script>
+    <script src="/static/js/dicas.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,30 @@
+{% set meta_robots = "noindex, nofollow" %}
+{% extends "layout/base.html" %}
+
+{% block title %}{% if ok %}E-mail confirmado{% else %}Link inválido{% endif %} — BeatleXML{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 py-12 px-4">
+    <div class="bg-white/95 backdrop-blur rounded-2xl shadow-2xl p-8 w-full max-w-md border border-white/20 text-center">
+        <img src="/static/img/beatlexmlLogo.png" alt="BeatleXML" class="h-12 w-auto mx-auto mb-4">
+        {% if ok %}
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">E-mail confirmado</h1>
+        <p class="text-slate-600 leading-relaxed">
+            Pronto. O suporte ainda precisa liberar o acesso. Você entra com o mesmo e-mail e senha quando a conta estiver ativa.
+        </p>
+        {% else %}
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Link inválido ou vencido</h1>
+        <p class="text-slate-600 leading-relaxed">
+            Peça um novo link na tela de cadastro recebido, ou escreva para
+            <a class="font-medium text-slate-800 underline" href="mailto:{{ contato_email }}">{{ contato_email }}</a>.
+        </p>
+        {% endif %}
+        <a href="/auth/login" class="inline-block mt-8 px-5 py-2.5 rounded-lg bg-slate-900 text-white font-medium hover:bg-slate-800">
+            Ir para o login
+        </a>
+        <p class="mt-4 text-sm">
+            <a href="/auth/aguardando-aprovacao" class="text-slate-600 underline">Reenviar confirmação</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

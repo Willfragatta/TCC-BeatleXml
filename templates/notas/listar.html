@@ -1,0 +1,1351 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Notas Fiscais - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-md border border-slate-200 max-w-full min-w-0">
+    <!-- Cabeçalho fixo na largura da página (sem scroll horizontal) -->
+    <div class="p-6 border-b border-slate-100 bg-white max-w-full">
+        <div class="mb-4">
+            <h2 class="text-xl font-bold text-slate-800">
+                Notas Fiscais
+                <span class="text-sm font-normal text-slate-500">— Documentos emitidos contra seu CNPJ</span>
+            </h2>
+        </div>
+        <div class="flex flex-wrap gap-2 items-center">
+            <button id="btn-download-lote" onclick="baixarSelecionados()" 
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-bold transition shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                <i class="fas fa-download mr-2"></i> Baixar Selecionados
+            </button>
+            <button id="btn-download-danfe" onclick="baixarDanfeSelecionados()" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-bold transition shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                <i class="fas fa-print mr-2"></i> Baixar DANFEs
+            </button>
+            <button id="btn-tag-lote" onclick="abrirModalEtiquetaLote()" 
+                    class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg font-bold transition shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                <i class="fas fa-tag mr-2"></i> Etiquetar Selecionadas
+            </button>
+            <button id="btn-sync" onclick="sincronizar()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-bold flex items-center transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                <span id="sync-text"><i class="fas fa-sync-alt mr-2"></i> Sincronizar</span>
+                <span id="sync-loading" class="hidden"><i class="fas fa-spinner fa-spin mr-2"></i> Processando...</span>
+                <span id="sync-countdown" class="hidden"><i class="fas fa-clock mr-2"></i> <span id="countdown-text"></span></span>
+            </button>
+            <div id="ultima-sync-info" class="text-xs text-slate-500 w-full sm:w-auto"></div>
+        </div>
+    </div>
+
+    <!-- Barra de busca e filtros -->
+    <div class="p-4 bg-slate-50 border-b">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
+            <div>
+                <select id="tipo-busca" class="w-full px-4 py-2 border border-gray-300 rounded-lg" title="Tipo de busca">
+                    <option value="">Busca geral</option>
+                    <option value="numero_nfe">Número da NFe</option>
+                    <option value="chave">Chave da nota</option>
+                    <option value="empresa">Empresa (nome ou CNPJ)</option>
+                    <option value="conteudo_nfe">Conteúdo da NFe (produtos)</option>
+                </select>
+            </div>
+            <div>
+                <input type="text" id="busca" placeholder="Buscar por fornecedor, chave, número..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                       onkeypress="if(event.key==='Enter') aplicarFiltros()">
+            </div>
+            <div>
+                <input type="date" id="data-inicio" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <input type="date" id="data-fim" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <select id="filtro-etiqueta" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Todas as etiquetas</option>
+                    <option value="sem">Sem etiquetas</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button onclick="aplicarFiltros()" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">
+                    <i class="fas fa-search mr-2"></i> Buscar
+                </button>
+                <button type="button" onclick="limparFiltros()" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition whitespace-nowrap">
+                    <i class="fas fa-times mr-1"></i> Limpar
+                </button>
+            </div>
+        </div>
+        <!-- Filtros Conexo (só com Exibir status Conexo em /config) -->
+        <div id="filtros-erp" class="hidden mb-4 p-3 bg-white border border-slate-200 rounded-lg">
+            <p class="text-xs font-bold text-slate-500 uppercase mb-2">Status Conexo</p>
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
+                <div>
+                    <label class="block text-xs text-slate-600 mb-1" for="filtro-erp-baixada">Baixada</label>
+                    <select id="filtro-erp-baixada" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="">Qualquer</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-600 mb-1" for="filtro-erp-recebida">Recebida</label>
+                    <select id="filtro-erp-recebida" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="">Qualquer</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-600 mb-1" for="filtro-erp-lancada">Lançada</label>
+                    <select id="filtro-erp-lancada" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="">Qualquer</option>
+                        <option value="sim">Sim</option>
+                        <option value="nao">Não</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2 pb-2">
+                    <input type="checkbox" id="filtro-somente-nao-lancadas" class="rounded">
+                    <label for="filtro-somente-nao-lancadas" class="text-xs text-slate-700">Só não lançadas</label>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-600 mb-1" for="filtro-atraso-min">Atraso ≥ (dias)</label>
+                    <input type="number" id="filtro-atraso-min" min="0" step="1" placeholder="Ex: 15"
+                           class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm">
+                </div>
+                <div>
+                    <button type="button" onclick="aplicarFiltros()" class="w-full bg-slate-700 text-white px-3 py-2 rounded-lg text-sm font-bold">
+                        Aplicar status
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center justify-between text-sm text-gray-600">
+            <span>
+                <span id="total-notas">Carregando...</span>
+                <span id="total-selecionadas" class="ml-2 text-blue-700 font-semibold"></span>
+            </span>
+            <div class="flex space-x-2">
+                <button onclick="exportarCSV()" class="text-green-600 hover:text-green-800 font-bold">
+                    <i class="fas fa-file-csv mr-1"></i> Exportar CSV
+                </button>
+                <button onclick="criarEtiqueta()" class="text-blue-600 hover:text-blue-800 font-bold">
+                    <i class="fas fa-tag mr-1"></i> Nova Etiqueta
+                </button>
+                <button onclick="abrirGerenciarEtiquetasPagina()" class="text-slate-700 hover:text-slate-900 font-bold">
+                    <i class="fas fa-pen mr-1"></i> Gerenciar Etiquetas
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll X/Y no viewport da tabela + setas laterais -->
+    <div class="relative max-w-full">
+        <button type="button" id="btn-scroll-left" onclick="scrollTabela(-280)"
+                class="absolute left-1 top-1/2 -translate-y-1/2 z-20 hidden w-9 h-9 rounded-full bg-white/95 border border-slate-200 shadow text-slate-600 hover:bg-slate-50"
+                title="Rolar para a esquerda" aria-label="Rolar para a esquerda">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button type="button" id="btn-scroll-right" onclick="scrollTabela(280)"
+                class="absolute right-1 top-1/2 -translate-y-1/2 z-20 hidden w-9 h-9 rounded-full bg-white/95 border border-slate-200 shadow text-slate-600 hover:bg-slate-50"
+                title="Rolar para a direita" aria-label="Rolar para a direita">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+        <div id="tabela-scroll" class="overflow-auto max-w-full max-h-[calc(100vh-17rem)]">
+            <table class="min-w-max w-full divide-y divide-slate-200" id="tabela-notas">
+                <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm" id="thead-notas">
+                    <tr id="tr-cabecalho">
+                        <th class="px-2 py-2 text-left cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap" data-col="checkbox" draggable="true" title="Selecionar todas = todos os resultados da busca atual (para baixar em lote)">
+                            <input type="checkbox" id="select-all" onchange="toggleSelectAll()" class="rounded" onclick="event.stopPropagation()">
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap"
+                            data-col="tipo" draggable="true" title="Arraste para reordenar">
+                            <span>Tipo</span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap"
+                            data-col="situacao" draggable="true" title="Arraste para reordenar">
+                            <span>Sit.</span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap"
+                            data-col="numero" draggable="true" data-sortable="true" title="Clique para ordenar | Arraste para reordenar">
+                            <span class="flex items-center" onclick="ordenarPor('numero_nfe'); event.stopPropagation();">
+                                Nº
+                                <i id="sort-numero" class="ml-1 text-slate-400"></i>
+                            </span>
+                        </th>
+                        <th class="px-3 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors"
+                            data-col="fornecedor" draggable="true" data-sortable="true" title="Clique para ordenar | Arraste para reordenar">
+                            <span class="flex items-center" onclick="ordenarPor('emitente_nome'); event.stopPropagation();">
+                                Fornecedor
+                                <i id="sort-fornecedor" class="ml-1 text-slate-400"></i>
+                            </span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap"
+                            data-col="data" draggable="true" data-sortable="true" title="Clique para ordenar | Arraste para reordenar">
+                            <span class="flex items-center" onclick="ordenarPor('data_emissao'); event.stopPropagation();">
+                                Data
+                                <i id="sort-data" class="ml-1 text-slate-400 fas fa-sort-down"></i>
+                            </span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap col-erp"
+                            data-col="atraso" draggable="true" data-sortable="true" title="Dias sem lançar (desde a emissão). Ordenar lista só notas com atraso.">
+                            <span class="flex items-center" onclick="ordenarPor('dias_atraso'); event.stopPropagation();">
+                                Atraso
+                                <i id="sort-atraso" class="ml-1 text-slate-400"></i>
+                            </span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap"
+                            data-col="valor" draggable="true" data-sortable="true" title="Clique para ordenar | Arraste para reordenar">
+                            <span class="flex items-center" onclick="ordenarPor('valor_total'); event.stopPropagation();">
+                                Valor
+                                <i id="sort-valor" class="ml-1 text-slate-400"></i>
+                            </span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors"
+                            data-col="nat" draggable="true" title="Natureza da operação">
+                            <span>Nat</span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap col-erp"
+                            data-col="baixada" draggable="true" title="Baixada no Conexo (PBX)">
+                            <span>Baix.</span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap col-erp"
+                            data-col="recebida" draggable="true" title="Recebida no Conexo (RCM)">
+                            <span>Rec.</span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap col-erp"
+                            data-col="lancada" draggable="true" title="Lançada no Conexo">
+                            <span>Lanç.</span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap col-erp"
+                            data-col="transacao" draggable="true" title="Transação do lançamento">
+                            <span>Trans.</span>
+                        </th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors"
+                            data-col="etiquetas" draggable="true" title="Arraste para reordenar">
+                            <span>Etiquetas</span>
+                        </th>
+                        <th class="px-2 py-2 text-center text-xs font-bold text-slate-500 uppercase cursor-move hover:bg-slate-100 transition-colors whitespace-nowrap"
+                            data-col="acoes" draggable="true" title="Arraste para reordenar">
+                            <span>Ações</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-notas" class="bg-white divide-y divide-slate-200">
+                    <tr>
+                        <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+                            <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                            <p>Carregando notas...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    <div id="paginacao" class="p-4 border-t bg-slate-50 flex justify-between items-center">
+        <div class="text-sm text-gray-600">
+            <span id="info-paginacao">Carregando...</span>
+        </div>
+        <div class="flex space-x-2">
+            <button id="btn-first" onclick="carregarPagina(0)" 
+                    class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled title="Primeira página">
+                <i class="fas fa-angle-double-left"></i> Primeira
+            </button>
+            <button id="btn-prev" onclick="carregarPagina(paginaAtual - 1)" 
+                    class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled>
+                <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <button id="btn-next" onclick="carregarPagina(paginaAtual + 1)" 
+                    class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled>
+                Próxima <i class="fas fa-chevron-right"></i>
+            </button>
+            <button id="btn-last" onclick="carregarPagina(Math.max(0, Math.ceil(totalNotas / limite) - 1))" 
+                    class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled title="Última página">
+                Última <i class="fas fa-angle-double-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de detalhes -->
+{% include "notas/modal_detalhes.html" %}
+
+<!-- Modal de criar etiqueta -->
+{% include "notas/modal_etiqueta.html" %}
+
+<!-- Modal de etiqueta em lote -->
+<div id="modal-etiqueta-lote" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-slate-800">Etiquetar Selecionadas</h2>
+            <button onclick="fecharModalEtiquetaLote()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Etiquetas</label>
+                <select id="etiqueta-lote-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg" multiple size="6">
+                </select>
+                <p class="text-xs text-gray-500 mt-2">Segure Ctrl (Windows) ou Command (Mac) para selecionar várias.</p>
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" onclick="fecharModalEtiquetaLote()" 
+                        class="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg">
+                    Cancelar
+                </button>
+                <button type="button" onclick="aplicarEtiquetaLote()" 
+                        class="px-6 py-2 bg-slate-700 text-white font-bold rounded-lg shadow-lg">
+                    <i class="fas fa-tag mr-2"></i> Aplicar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Gerenciar Etiquetas (listar, editar, excluir) -->
+<div id="modal-gerenciar-etiquetas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-slate-800">Gerenciar Etiquetas</h2>
+            <button onclick="fecharModalGerenciarEtiquetas()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 max-h-96 overflow-y-auto">
+            <ul id="lista-gerenciar-etiquetas" class="space-y-2">
+                <!-- preenchido por JS -->
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Recebimento (itens recmerc) -->
+<div id="modal-recebimento" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+            <div>
+                <h2 class="text-xl font-bold text-slate-800">Mercadorias recebidas</h2>
+                <p id="modal-recebimento-meta" class="text-sm text-slate-500 mt-1"></p>
+            </div>
+            <button type="button" onclick="fecharModalRecebimento()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-4 overflow-auto flex-1">
+            <div id="modal-recebimento-loading" class="text-center py-8 text-slate-500 hidden">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>Carregando...</p>
+            </div>
+            <div id="modal-recebimento-erro" class="text-center py-8 text-red-600 hidden"></div>
+            <table id="modal-recebimento-tabela" class="min-w-full text-sm divide-y divide-slate-200 hidden">
+                <thead class="bg-slate-50 sticky top-0">
+                    <tr>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase">Cód.</th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase">Descrição</th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase">Barras</th>
+                        <th class="px-2 py-2 text-right text-xs font-bold text-slate-500 uppercase">Qtde</th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase">Validade</th>
+                        <th class="px-2 py-2 text-right text-xs font-bold text-slate-500 uppercase">Valor</th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase">Unid</th>
+                        <th class="px-2 py-2 text-left text-xs font-bold text-slate-500 uppercase">Transação</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-recebimento-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+        </div>
+        <div id="modal-recebimento-footer" class="p-4 border-t bg-slate-50 flex justify-between items-center text-sm shrink-0 hidden">
+            <span id="modal-recebimento-total" class="font-bold text-slate-800"></span>
+            <button type="button" onclick="fecharModalRecebimento()" class="px-4 py-2 bg-slate-700 text-white rounded-lg font-bold">Fechar</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function formatarMoedaBR(num) {
+    if (num == null || isNaN(num)) return '0,00';
+    return Number(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function formatarNumeroBR(num, decimais) {
+    if (num == null || isNaN(num)) return decimais === 0 ? '0' : '0,00';
+    return Number(num).toLocaleString('pt-BR', { minimumFractionDigits: decimais ?? 2, maximumFractionDigits: decimais ?? 2 });
+}
+
+let paginaAtual = 0;
+let totalNotas = 0;
+let limite = 20;
+let filtros = {};
+let etiquetasDisponiveis = [];
+let ordenacao = {
+    campo: 'data_emissao',
+    direcao: 'desc'  // Padrão: mais recente primeiro
+};
+let colunasOrdem = ['checkbox', 'etiquetas', 'acoes', 'data', 'atraso', 'fornecedor', 'numero', 'valor', 'nat', 'baixada', 'recebida', 'lancada', 'transacao', 'situacao', 'tipo'];
+let colunaArrastando = null;
+let usuarioId = null;
+let idsPaginaAtual = [];
+let exibirStatusErp = false;
+const COLUNAS_ERP = ['baixada', 'recebida', 'lancada', 'transacao', 'atraso'];
+
+function estiloChipEtiquetaLista(et) {
+    const borda = et.cor || '#3B82F6';
+    const fundo = et.cor_fundo || (borda + '40');
+    const texto = et.cor_texto || borda;
+    return `background-color:${fundo};color:${texto};border:1px solid ${borda};font-weight:600;`;
+}
+
+function atualizarContadorSelecao() {
+    const n = document.querySelectorAll('.nota-checkbox:checked').length;
+    const el = document.getElementById('total-selecionadas');
+    if (!el) return;
+    el.textContent = n > 0 ? `${n} nota(s) selecionada(s)` : '';
+}
+
+function aplicarVisibilidadeColunasErp() {
+    document.querySelectorAll('.col-erp').forEach((el) => {
+        el.style.display = exibirStatusErp ? '' : 'none';
+    });
+    const bloco = document.getElementById('filtros-erp');
+    if (bloco) {
+        if (exibirStatusErp) {
+            bloco.classList.remove('hidden');
+        } else {
+            bloco.classList.add('hidden');
+        }
+    }
+}
+
+function scrollTabela(delta) {
+    const el = document.getElementById('tabela-scroll');
+    if (el) el.scrollBy({ left: delta, behavior: 'smooth' });
+}
+
+function atualizarBotoesScrollTabela() {
+    const el = document.getElementById('tabela-scroll');
+    const btnL = document.getElementById('btn-scroll-left');
+    const btnR = document.getElementById('btn-scroll-right');
+    if (!el || !btnL || !btnR) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const precisa = maxScroll > 8;
+    btnL.classList.toggle('hidden', !precisa || el.scrollLeft <= 4);
+    btnR.classList.toggle('hidden', !precisa || el.scrollLeft >= maxScroll - 4);
+}
+
+function iniciarScrollTabela() {
+    const el = document.getElementById('tabela-scroll');
+    if (!el || el.dataset.scrollBound) return;
+    el.dataset.scrollBound = '1';
+    el.addEventListener('scroll', atualizarBotoesScrollTabela, { passive: true });
+    window.addEventListener('resize', atualizarBotoesScrollTabela);
+    setTimeout(atualizarBotoesScrollTabela, 100);
+}
+
+const paramsUrl = new URLSearchParams(window.location.search);
+if (paramsUrl.get('situacao') === 'canceladas') {
+    filtros.situacao = 'canceladas';
+}
+
+// Placeholder do campo busca conforme tipo selecionado
+const placeholdersPorTipo = {
+    '': 'Buscar por fornecedor, chave, número...',
+    'numero_nfe': 'Ex: 4012',
+    'chave': '44 dígitos ou parte da chave',
+    'empresa': 'Nome ou CNPJ do emitente',
+    'conteudo_nfe': 'Digite um produto'
+};
+document.getElementById('tipo-busca')?.addEventListener('change', function() {
+    const ph = placeholdersPorTipo[this.value] || placeholdersPorTipo[''];
+    document.getElementById('busca').placeholder = ph;
+});
+
+// Carregar etiquetas disponíveis
+async function carregarEtiquetas() {
+    try {
+        const res = await fetch('/api/etiquetas');
+        if (res.ok) {
+            etiquetasDisponiveis = await res.json();
+            const select = document.getElementById('filtro-etiqueta');
+            // Adiciona opções de etiquetas
+            etiquetasDisponiveis.forEach(et => {
+                const option = document.createElement('option');
+                option.value = et.id;
+                option.textContent = et.nome;
+                option.style.color = et.cor;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Erro ao carregar etiquetas:', error);
+    }
+}
+
+// Função para ordenar
+function ordenarPor(campo) {
+    if (ordenacao.campo === campo) {
+        // Alterna direção se já está ordenando por esse campo
+        ordenacao.direcao = ordenacao.direcao === 'asc' ? 'desc' : 'asc';
+    } else {
+        // Novo campo, começa com descendente (mais recente primeiro)
+        ordenacao.campo = campo;
+        ordenacao.direcao = 'desc';
+    }
+    
+    // Atualiza ícones de ordenação
+    atualizarIconesOrdenacao();
+    
+    // Salva preferência
+    salvarPreferencias();
+    
+    // Recarrega notas
+    paginaAtual = 0;
+    carregarNotas();
+}
+
+// Atualiza ícones de ordenação
+function atualizarIconesOrdenacao() {
+    // Remove todos os ícones
+    document.querySelectorAll('[id^="sort-"]').forEach(icon => {
+        icon.className = 'ml-2 text-slate-400';
+    });
+    
+    // Adiciona ícone no campo atual
+    const mapIcones = {
+        'numero_nfe': 'sort-numero',
+        'emitente_nome': 'sort-fornecedor',
+        'data_emissao': 'sort-data',
+        'valor_total': 'sort-valor',
+        'dias_atraso': 'sort-atraso'
+    };
+    
+    const iconId = mapIcones[ordenacao.campo];
+    if (iconId) {
+        const icon = document.getElementById(iconId);
+        if (icon) {
+            icon.className = `ml-2 text-blue-600 ${ordenacao.direcao === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}`;
+        }
+    }
+}
+
+function escHtml(texto) {
+    const d = document.createElement('div');
+    d.textContent = texto == null ? '' : String(texto);
+    return d.innerHTML;
+}
+
+function buildAcoesNota(nota) {
+    let html = `<button onclick="abrirDetalhes(${nota.id})" class="text-blue-600 hover:text-blue-900 font-bold text-xs bg-blue-50 px-2 py-1 rounded-md transition">Detalhes</button>`;
+    if (nota.status_manifesto === 'RESUMO' || nota.status_manifesto === 'CANCELADA') {
+        html += ` <button type="button" onclick="buscarCompleta(${nota.id}, this)" class="text-amber-700 hover:text-amber-900 font-bold text-xs bg-amber-50 px-2 py-1 rounded-md transition">Completa</button>`;
+    }
+    return html;
+}
+
+async function buscarCompleta(notaId, btnEl) {
+    if (!btnEl) return;
+    const origText = btnEl.textContent;
+    btnEl.disabled = true;
+    btnEl.textContent = 'Aguarde...';
+    try {
+        const res = await fetch(`/api/notas/${notaId}/buscar-completa`, { method: 'POST', credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+        if (data.ok) {
+            mostrarToast('Nota atualizada para completa.', 'success');
+            carregarNotas();
+        } else {
+            mostrarToast(data.erro || 'Não foi possível trazer a nota completa.', 'error');
+            btnEl.disabled = false;
+            btnEl.textContent = origText;
+        }
+    } catch (err) {
+        mostrarToast('Erro de conexão.', 'error');
+        btnEl.disabled = false;
+        btnEl.textContent = origText;
+    }
+}
+
+// Carregar notas
+async function carregarNotas() {
+    const tbody = document.getElementById('tbody-notas');
+    const colCount = Math.max(colunasOrdem.length, 9);
+    tbody.innerHTML = `<tr><td colspan="${colCount}" class="px-6 py-8 text-center"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Carregando...</p></td></tr>`;
+    
+    const params = new URLSearchParams({
+        skip: paginaAtual * limite,
+        limit: limite
+    });
+    
+    // Adiciona ordenação
+    if (ordenacao && ordenacao.campo) {
+        params.append('order_by', ordenacao.campo);
+        params.append('order_dir', ordenacao.direcao || 'desc');
+    }
+    
+    // Adiciona filtros
+    Object.keys(filtros).forEach(key => {
+        if (filtros[key] !== undefined && filtros[key] !== null && filtros[key] !== '') {
+            params.append(key, filtros[key]);
+        }
+    });
+    
+    try {
+        const res = await fetch(`/api/notas?${params}`);
+        if (!res.ok) throw new Error('Erro ao carregar notas');
+        
+        const data = await res.json();
+        totalNotas = data.total;
+        exibirStatusErp = !!data.exibir_status_erp;
+        aplicarVisibilidadeColunasErp();
+        const ordemRender = colunasOrdem.filter((c) => {
+            if (COLUNAS_ERP.includes(c) && !exibirStatusErp) return false;
+            return true;
+        });
+        
+        if (data.notas.length === 0) {
+            idsPaginaAtual = [];
+            tbody.innerHTML = `<tr><td colspan="${colCount}" class="px-6 py-8 text-center text-gray-500">Nenhuma nota encontrada</td></tr>`;
+        } else {
+            idsPaginaAtual = data.notas.map((n) => n.id);
+            tbody.innerHTML = data.notas.map((nota, idx) => {
+                const dataFormatada = nota.data_emissao ? new Date(nota.data_emissao).toLocaleDateString('pt-BR') : '---';
+                const tipoNota = nota.status_manifesto === 'RESUMO' ? 'RES.' : 'COMP.';
+                const situacaoBadge = nota.status_manifesto === 'CANCELADA'
+                    ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-700">Canc.</span>'
+                    : '<span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700">Ativa</span>';
+                const etiquetasHtml = (nota.etiquetas && nota.etiquetas.length)
+                    ? nota.etiquetas.map(et => {
+                        const nomeBruto = et.nome || '';
+                        const nome = nomeBruto.length > 14 ? (nomeBruto.slice(0, 14) + '…') : nomeBruto;
+                        return `<span class="px-1.5 py-0.5 rounded text-[10px] font-medium truncate max-w-[8.5rem] inline-block" style="${estiloChipEtiquetaLista(et)}" title="${escHtml(nomeBruto)}">${escHtml(nome)}</span>`;
+                    }).join('')
+                    : '<span class="text-gray-400 text-[10px]">—</span>';
+                const natTxt = (nota.natureza_operacao || '').trim();
+                const natHtml = natTxt
+                    ? `<span class="text-xs text-slate-700 uppercase" title="${escHtml(natTxt)}">${escHtml(natTxt.length > 22 ? natTxt.slice(0, 22) + '…' : natTxt)}</span>`
+                    : '<span class="text-gray-400 text-xs">—</span>';
+                const simOuVazio = (v) => v ? '<span class="text-emerald-700 font-bold text-xs">Sim</span>' : '';
+                const recebidaHtml = nota.erp_recebida
+                    ? `<button type="button" onclick="abrirModalRecebimento(${nota.id})" class="text-emerald-700 font-bold text-xs underline hover:text-emerald-900" title="Ver mercadorias recebidas">Sim</button>`
+                    : '';
+                const atrasoVal = nota.dias_atraso;
+                const atrasoHtml = (atrasoVal == null)
+                    ? '<span class="text-slate-300 text-xs">—</span>'
+                    : `<span class="text-xs font-semibold ${atrasoVal >= 15 ? 'text-amber-700' : 'text-slate-700'}" title="Dias desde a emissão sem lançamento">${atrasoVal}</span>`;
+                const zebra = idx % 2 === 1 ? 'bg-slate-50/70' : 'bg-white';
+                
+                const celulas = {
+                    'checkbox': `<td class="px-2 py-2 whitespace-nowrap"><input type="checkbox" class="nota-checkbox rounded" value="${nota.id}" onchange="atualizarBotaoDownload();atualizarContadorSelecao()"></td>`,
+                    'tipo': `<td class="px-2 py-2 whitespace-nowrap"><span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700">${tipoNota}</span></td>`,
+                    'situacao': `<td class="px-2 py-2 whitespace-nowrap">${situacaoBadge}</td>`,
+                    'numero': `<td class="px-2 py-2 whitespace-nowrap text-xs font-mono text-slate-500">${escHtml(nota.numero_nfe || '---')}</td>`,
+                    'fornecedor': `<td class="px-3 py-2 text-xs font-semibold text-slate-900 uppercase truncate max-w-[12rem]" title="${escHtml(nota.emitente_nome || '')}">${escHtml(nota.emitente_nome || 'Desconhecido')}</td>`,
+                    'data': `<td class="px-2 py-2 whitespace-nowrap text-xs text-slate-500">${escHtml(dataFormatada)}</td>`,
+                    'atraso': `<td class="px-2 py-2 whitespace-nowrap text-center col-erp">${atrasoHtml}</td>`,
+                    'valor': `<td class="px-2 py-2 whitespace-nowrap text-xs font-bold text-blue-700">R$ ${escHtml(formatarMoedaBR(nota.valor_total))}</td>`,
+                    'nat': `<td class="px-2 py-2 max-w-[8rem]">${natHtml}</td>`,
+                    'baixada': `<td class="px-2 py-2 whitespace-nowrap col-erp">${simOuVazio(nota.erp_baixada)}</td>`,
+                    'recebida': `<td class="px-2 py-2 whitespace-nowrap col-erp">${recebidaHtml}</td>`,
+                    'lancada': `<td class="px-2 py-2 whitespace-nowrap col-erp">${simOuVazio(nota.erp_lancada)}</td>`,
+                    'transacao': `<td class="px-2 py-2 col-erp text-[10px] font-mono text-slate-600 max-w-[5.5rem] truncate" title="${escHtml(nota.erp_transacao || '')}">${escHtml(nota.erp_transacao || '')}</td>`,
+                    'etiquetas': `<td class="px-2 py-2 w-36 max-w-[9rem]" data-col="etiquetas"><div class="flex flex-col gap-0.5 items-start">${etiquetasHtml}</div></td>`,
+                    'acoes': `<td class="px-2 py-2 text-center whitespace-nowrap"><div class="flex flex-wrap gap-1 justify-center">${buildAcoesNota(nota)}</div></td>`
+                };
+                
+                return `<tr class="${zebra} hover:bg-blue-50/60 transition-colors" data-nota-id="${nota.id}">${ordemRender.map(col => celulas[col] || '').join('')}</tr>`;
+            }).join('');
+        }
+        
+        atualizarPaginacao();
+        atualizarBotaoDownload();
+        atualizarContadorSelecao();
+        atualizarBotoesScrollTabela();
+    } catch (error) {
+        console.error('Erro:', error);
+        idsPaginaAtual = [];
+        tbody.innerHTML = `<tr><td colspan="${colCount}" class="px-6 py-8 text-center text-red-500">Erro ao carregar notas</td></tr>`;
+    }
+}
+
+function atualizarPaginacao() {
+    document.getElementById('info-paginacao').textContent = 
+        `Mostrando ${paginaAtual * limite + 1} a ${Math.min((paginaAtual + 1) * limite, totalNotas)} de ${totalNotas} notas`;
+    
+    document.getElementById('total-notas').textContent = `${totalNotas} nota(s) encontrada(s)`;
+    
+    const naUltima = totalNotas === 0 || (paginaAtual + 1) * limite >= totalNotas;
+    document.getElementById('btn-first').disabled = paginaAtual === 0;
+    document.getElementById('btn-prev').disabled = paginaAtual === 0;
+    document.getElementById('btn-next').disabled = naUltima;
+    document.getElementById('btn-last').disabled = naUltima;
+}
+
+function carregarPagina(pagina) {
+    if (pagina < 0) return;
+    if (pagina * limite >= totalNotas) return;
+    paginaAtual = pagina;
+    carregarNotas();
+}
+
+function aplicarFiltros() {
+    filtros = {};
+    const busca = document.getElementById('busca').value.trim();
+    if (busca) filtros.busca = busca;
+    const tipoBusca = document.getElementById('tipo-busca').value;
+    if (tipoBusca) filtros.tipo_busca = tipoBusca;
+
+    const dataInicio = document.getElementById('data-inicio').value;
+    if (dataInicio) filtros.data_inicio = dataInicio;
+
+    const dataFim = document.getElementById('data-fim').value;
+    if (dataFim) filtros.data_fim = dataFim;
+
+    if (paramsUrl.get('situacao') === 'canceladas') {
+        filtros.situacao = 'canceladas';
+    }
+    
+    const etiqueta = document.getElementById('filtro-etiqueta').value;
+    if (etiqueta === 'sem') {
+        filtros.sem_etiquetas = true;
+    } else if (etiqueta) {
+        filtros.etiqueta_id = parseInt(etiqueta);
+    }
+
+    const eb = document.getElementById('filtro-erp-baixada')?.value;
+    const er = document.getElementById('filtro-erp-recebida')?.value;
+    const el = document.getElementById('filtro-erp-lancada')?.value;
+    if (eb) filtros.erp_baixada = eb;
+    if (er) filtros.erp_recebida = er;
+    if (el) filtros.erp_lancada = el;
+    if (document.getElementById('filtro-somente-nao-lancadas')?.checked) {
+        filtros.somente_nao_lancadas = true;
+    }
+    const amin = document.getElementById('filtro-atraso-min')?.value;
+    if (amin !== undefined && amin !== null && String(amin).trim() !== '') {
+        const n = parseInt(amin, 10);
+        if (!isNaN(n) && n >= 0) filtros.atraso_min_dias = n;
+    }
+
+    paginaAtual = 0;
+    document.getElementById('select-all').checked = false;
+    carregarNotas();
+}
+
+function limparFiltros() {
+    document.getElementById('busca').value = '';
+    document.getElementById('tipo-busca').value = '';
+    document.getElementById('data-inicio').value = '';
+    document.getElementById('data-fim').value = '';
+    const et = document.getElementById('filtro-etiqueta');
+    if (et) et.value = '';
+    const eb = document.getElementById('filtro-erp-baixada');
+    if (eb) eb.value = '';
+    const er = document.getElementById('filtro-erp-recebida');
+    if (er) er.value = '';
+    const el = document.getElementById('filtro-erp-lancada');
+    if (el) el.value = '';
+    const snl = document.getElementById('filtro-somente-nao-lancadas');
+    if (snl) snl.checked = false;
+    const amin = document.getElementById('filtro-atraso-min');
+    if (amin) amin.value = '';
+    filtros = {};
+    if (paramsUrl.get('situacao') === 'canceladas') {
+        filtros.situacao = 'canceladas';
+    }
+    paginaAtual = 0;
+    const sa = document.getElementById('select-all');
+    if (sa) sa.checked = false;
+    carregarNotas();
+}
+
+async function abrirModalRecebimento(notaId) {
+    const modal = document.getElementById('modal-recebimento');
+    const loading = document.getElementById('modal-recebimento-loading');
+    const erro = document.getElementById('modal-recebimento-erro');
+    const tabela = document.getElementById('modal-recebimento-tabela');
+    const footer = document.getElementById('modal-recebimento-footer');
+    const tbody = document.getElementById('modal-recebimento-tbody');
+    const meta = document.getElementById('modal-recebimento-meta');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    loading.classList.remove('hidden');
+    erro.classList.add('hidden');
+    tabela.classList.add('hidden');
+    footer.classList.add('hidden');
+    tbody.innerHTML = '';
+    meta.textContent = '';
+    try {
+        const res = await fetch(`/api/notas/${notaId}/recebimento`);
+        const data = await res.json().catch(() => ({}));
+        loading.classList.add('hidden');
+        if (!res.ok) {
+            erro.textContent = data.detail || 'Recebimento detalhado não disponível (aguarde o Beatle Uploader sincronizar via recmerc).';
+            erro.classList.remove('hidden');
+            return;
+        }
+        meta.textContent = [
+            data.numero_nfe ? `NF ${data.numero_nfe}` : '',
+            data.unidade ? `Unid. ${data.unidade}` : '',
+            data.transacao ? `Trans. ${data.transacao}` : '',
+            data.data ? `Data ${new Date(data.data + 'T12:00:00').toLocaleDateString('pt-BR')}` : '',
+            data.horaini || '',
+        ].filter(Boolean).join(' · ');
+        tbody.innerHTML = (data.itens || []).map((it) => {
+            const descClass = it.produto_cadastrado ? 'text-slate-800' : 'text-amber-700 font-semibold';
+            const desc = it.prod_descricao || 'Produto não cadastrado';
+            const valFmt = it.validade ? new Date(it.validade + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+            const qtde = it.qtde != null ? Number(it.qtde).toLocaleString('pt-BR', { maximumFractionDigits: 3 }) : '—';
+            return `<tr class="${it.produto_cadastrado ? '' : 'bg-amber-50/60'}">
+                <td class="px-2 py-2 font-mono text-xs">${it.prod_codigo != null ? it.prod_codigo : '—'}</td>
+                <td class="px-2 py-2 ${descClass}">${desc.replace(/</g, '&lt;')}</td>
+                <td class="px-2 py-2 font-mono text-xs">${(it.prod_codbarras || '—').replace(/</g, '&lt;')}</td>
+                <td class="px-2 py-2 text-right">${qtde}</td>
+                <td class="px-2 py-2">${valFmt}</td>
+                <td class="px-2 py-2 text-right font-medium">R$ ${formatarMoedaBR(it.valor)}</td>
+                <td class="px-2 py-2">${(it.recm_unid_codigo || '').replace(/</g, '&lt;')}</td>
+                <td class="px-2 py-2 font-mono text-xs">${(it.recm_transacao || '').replace(/</g, '&lt;')}</td>
+            </tr>`;
+        }).join('');
+        document.getElementById('modal-recebimento-total').textContent =
+            `Valor total itens: R$ ${formatarMoedaBR(data.valor_total)} · ${(data.itens || []).length} linha(s)`;
+        tabela.classList.remove('hidden');
+        footer.classList.remove('hidden');
+    } catch (e) {
+        loading.classList.add('hidden');
+        erro.textContent = 'Erro ao carregar recebimento.';
+        erro.classList.remove('hidden');
+    }
+}
+
+function fecharModalRecebimento() {
+    const modal = document.getElementById('modal-recebimento');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.nota-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    atualizarBotaoDownload();
+    atualizarContadorSelecao();
+}
+
+function buildFiltrosBodyNotas() {
+    const b = {};
+    if (filtros.busca) b.busca = filtros.busca;
+    if (filtros.tipo_busca) b.tipo_busca = filtros.tipo_busca;
+    if (filtros.data_inicio) b.data_inicio = filtros.data_inicio;
+    if (filtros.data_fim) b.data_fim = filtros.data_fim;
+    if (filtros.situacao) b.situacao = filtros.situacao;
+    if (filtros.sem_etiquetas) b.sem_etiquetas = true;
+    if (filtros.etiqueta_id) b.etiqueta_id = filtros.etiqueta_id;
+    if (filtros.erp_baixada) b.erp_baixada = filtros.erp_baixada;
+    if (filtros.erp_recebida) b.erp_recebida = filtros.erp_recebida;
+    if (filtros.erp_lancada) b.erp_lancada = filtros.erp_lancada;
+    if (filtros.somente_nao_lancadas) b.somente_nao_lancadas = true;
+    if (filtros.atraso_min_dias != null) b.atraso_min_dias = filtros.atraso_min_dias;
+    return b;
+}
+
+function atualizarBotaoDownload() {
+    const selecionados = document.querySelectorAll('.nota-checkbox:checked');
+    const selectAll = document.getElementById('select-all').checked;
+    const btn = document.getElementById('btn-download-lote');
+    const btnDanfe = document.getElementById('btn-download-danfe');
+    const btnTag = document.getElementById('btn-tag-lote');
+    const desabilitar = selecionados.length === 0 && !(selectAll && totalNotas > 0);
+    btn.disabled = desabilitar;
+    btnDanfe.disabled = desabilitar;
+    btnTag.disabled = selecionados.length === 0;
+}
+
+async function baixarSelecionados() {
+    const selectAll = document.getElementById('select-all').checked;
+    let body;
+    if (selectAll && totalNotas > 0) {
+        body = JSON.stringify({ filtros: buildFiltrosBodyNotas() });
+    } else {
+        const selecionados = Array.from(document.querySelectorAll('.nota-checkbox:checked')).map(cb => parseInt(cb.value));
+        if (selecionados.length === 0) return;
+        body = JSON.stringify({ ids: selecionados });
+    }
+    try {
+        const res = await fetch('/api/notas/download-lote', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body
+        });
+        if (!res.ok) throw new Error('Erro ao baixar');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `notas_fiscais_${new Date().toISOString().split('T')[0]}.zip`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        mostrarToast('Erro ao baixar notas', 'error');
+        console.error(error);
+    }
+}
+
+async function baixarDanfeSelecionados() {
+    const selectAll = document.getElementById('select-all').checked;
+    let body;
+    if (selectAll && totalNotas > 0) {
+        body = JSON.stringify({ filtros: buildFiltrosBodyNotas() });
+    } else {
+        const selecionados = Array.from(document.querySelectorAll('.nota-checkbox:checked')).map(cb => parseInt(cb.value));
+        if (selecionados.length === 0) return;
+        body = JSON.stringify({ ids: selecionados });
+    }
+    try {
+        const res = await fetch('/api/notas/danfe-lote', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body
+        });
+        if (!res.ok) throw new Error('Erro ao baixar DANFEs');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `danfes_${new Date().toISOString().split('T')[0]}.zip`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        mostrarToast('Erro ao baixar DANFEs', 'error');
+        console.error(error);
+    }
+}
+
+function abrirModalEtiquetaLote() {
+    const select = document.getElementById('etiqueta-lote-select');
+    if (!select) return;
+    select.innerHTML = '';
+    etiquetasDisponiveis.forEach(et => {
+        const option = document.createElement('option');
+        option.value = et.id;
+        option.textContent = et.nome;
+        option.style.color = et.cor;
+        select.appendChild(option);
+    });
+    document.getElementById('modal-etiqueta-lote').classList.remove('hidden');
+    document.getElementById('modal-etiqueta-lote').classList.add('flex');
+}
+
+function fecharModalEtiquetaLote() {
+    document.getElementById('modal-etiqueta-lote').classList.add('hidden');
+    document.getElementById('modal-etiqueta-lote').classList.remove('flex');
+}
+
+async function aplicarEtiquetaLote() {
+    const select = document.getElementById('etiqueta-lote-select');
+    const etiquetaIds = Array.from(select.selectedOptions).map(opt => parseInt(opt.value));
+    if (etiquetaIds.length === 0) {
+        mostrarToast('Selecione ao menos uma etiqueta', 'warning');
+        return;
+    }
+
+    const selecionados = Array.from(document.querySelectorAll('.nota-checkbox:checked')).map(cb => parseInt(cb.value));
+    if (selecionados.length === 0) return;
+
+    try {
+        const res = await fetch('/api/etiquetas/notas/etiquetas-lote', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nota_ids: selecionados, etiqueta_ids: etiquetaIds })
+        });
+
+        if (!res.ok) throw new Error('Erro ao aplicar etiqueta');
+
+        mostrarToast('Etiquetas aplicadas com sucesso!', 'success');
+        fecharModalEtiquetaLote();
+        carregarNotas();
+    } catch (error) {
+        mostrarToast('Erro ao aplicar etiqueta', 'error');
+        console.error(error);
+    }
+}
+
+let countdownInterval = null;
+
+function formatarUltimaSync(ultimaConsulta, ultimaMensagem) {
+    if (!ultimaConsulta) return '';
+    const d = new Date(ultimaConsulta);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    let s = `Última sincronização: ${dd}/${mm}/${yy} às ${hh}:${min}`;
+    if (ultimaMensagem) s += ` – ${ultimaMensagem}`;
+    return s;
+}
+
+function atualizarStatusSync() {
+    fetch('/sync/status')
+        .then(res => res.json())
+        .then(data => {
+            const btn = document.getElementById('btn-sync');
+            const text = document.getElementById('sync-text');
+            const loading = document.getElementById('sync-loading');
+            const countdown = document.getElementById('sync-countdown');
+            const countdownText = document.getElementById('countdown-text');
+            const ultimaSyncInfo = document.getElementById('ultima-sync-info');
+            ultimaSyncInfo.textContent = formatarUltimaSync(data.ultima_consulta, data.ultima_sync_mensagem);
+            
+            if (!data.pode_sincronizar) {
+                btn.disabled = true;
+                text.classList.add('hidden');
+                loading.classList.add('hidden');
+                countdown.classList.remove('hidden');
+                iniciarCountdown(data.tempo_restante_segundos, countdownText);
+            } else {
+                btn.disabled = false;
+                text.classList.remove('hidden');
+                loading.classList.add('hidden');
+                countdown.classList.add('hidden');
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Erro ao verificar status:', err);
+        });
+}
+
+function iniciarCountdown(segundos, elemento) {
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+    
+    let tempoRestante = segundos;
+    
+    function atualizar() {
+        const horas = Math.floor(tempoRestante / 3600);
+        const minutos = Math.floor((tempoRestante % 3600) / 60);
+        const segs = tempoRestante % 60;
+        
+        if (horas > 0) {
+            elemento.textContent = `Próxima sincronização em ${horas}h ${minutos}m ${segs}s`;
+        } else if (minutos > 0) {
+            elemento.textContent = `Próxima sincronização em ${minutos}m ${segs}s`;
+        } else {
+            elemento.textContent = `Próxima sincronização em ${segs}s`;
+        }
+        
+        if (tempoRestante <= 0) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+            atualizarStatusSync(); // Verifica novamente
+        }
+        
+        tempoRestante--;
+    }
+    
+    atualizar(); // Primeira atualização imediata
+    countdownInterval = setInterval(atualizar, 1000);
+}
+
+function sincronizar() {
+    const btn = document.getElementById('btn-sync');
+    const text = document.getElementById('sync-text');
+    const loading = document.getElementById('sync-loading');
+    const countdown = document.getElementById('sync-countdown');
+    
+    btn.disabled = true; 
+    text.classList.add('hidden'); 
+    countdown.classList.add('hidden');
+    loading.classList.remove('hidden');
+
+    fetch('/sync', { method: 'POST' })
+        .then(res => {
+            if (!res.ok) {
+                return res.json().then(data => {
+                    throw new Error(data.detail || 'Erro ao sincronizar');
+                });
+            }
+            return res.json();
+        })
+        .then(data => {
+            // Toast notification (substituir alert depois)
+            mostrarToast('Sincronização iniciada!', 'success');
+            setTimeout(() => {
+                atualizarStatusSync();
+                carregarNotas();
+            }, 2000);
+        })
+        .catch(err => {
+            mostrarToast(err.message, 'error');
+            atualizarStatusSync(); // Atualiza status para mostrar countdown
+        })
+        .finally(() => { 
+            loading.classList.add('hidden');
+        });
+}
+
+// Verifica status ao carregar página
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarStatusSync();
+    // Atualiza status a cada 10 segundos
+    setInterval(atualizarStatusSync, 10000);
+});
+
+// Função para toast (usa componente toast)
+function mostrarToast(mensagem, tipo) {
+    if (typeof toast !== 'undefined') {
+        if (tipo === 'error') {
+            toast.error(mensagem);
+        } else if (tipo === 'success') {
+            toast.success(mensagem);
+        } else if (tipo === 'warning') {
+            toast.warning(mensagem);
+        } else {
+            toast.info(mensagem);
+        }
+    } else {
+        // Fallback para alert se toast não estiver disponível
+        alert(mensagem);
+    }
+}
+
+function criarEtiqueta() {
+    document.getElementById('etiqueta-id').value = '';
+    document.getElementById('modal-etiqueta-titulo').textContent = 'Nova Etiqueta';
+    document.getElementById('modal-etiqueta').classList.remove('hidden');
+    document.getElementById('modal-etiqueta').classList.add('flex');
+}
+
+window.abrirEditarEtiqueta = function(id, nome, cor, corFundo, corTexto) {
+    const borda = cor || '#2563EB';
+    const fundo = corFundo || '#DBEAFE';
+    const texto = corTexto || borda;
+    document.getElementById('etiqueta-id').value = id;
+    document.getElementById('etiqueta-nome').value = nome || '';
+    document.getElementById('etiqueta-cor').value = borda;
+    document.getElementById('etiqueta-cor-hex').value = borda;
+    document.getElementById('etiqueta-cor-fundo').value = fundo;
+    document.getElementById('etiqueta-cor-fundo-hex').value = fundo;
+    document.getElementById('etiqueta-cor-texto').value = texto;
+    document.getElementById('etiqueta-cor-texto-hex').value = texto;
+    document.getElementById('modal-etiqueta-titulo').textContent = 'Editar Etiqueta';
+    if (typeof syncEtiquetaCoresPreview === 'function') syncEtiquetaCoresPreview();
+    document.getElementById('modal-etiqueta').classList.remove('hidden');
+    document.getElementById('modal-etiqueta').classList.add('flex');
+};
+
+async function abrirGerenciarEtiquetasPagina() {
+    const ul = document.getElementById('lista-gerenciar-etiquetas');
+    ul.innerHTML = '<li class="text-gray-500">Carregando...</li>';
+    document.getElementById('modal-gerenciar-etiquetas').classList.remove('hidden');
+    document.getElementById('modal-gerenciar-etiquetas').classList.add('flex');
+    try {
+        const res = await fetch('/api/etiquetas');
+        const etiquetas = res.ok ? await res.json() : [];
+        if (etiquetas.length === 0) {
+            ul.innerHTML = '<li class="text-gray-500">Nenhuma etiqueta. Crie uma em "Nova Etiqueta".</li>';
+        } else {
+            ul.innerHTML = etiquetas.map(et => {
+                const corForte = et.cor || '#2563EB';
+                const fundo = et.cor_fundo || corForte;
+                const texto = et.cor_texto || corForte;
+                const nomeEsc = (et.nome || '').replace(/"/g, '&quot;');
+                return `<li class="flex items-center justify-between py-2 px-3 rounded-lg border border-slate-200 hover:bg-slate-50" data-id="${et.id}" data-nome="${nomeEsc}" data-cor="${corForte}" data-cor-fundo="${fundo}" data-cor-texto="${texto}">
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold mr-3 flex-shrink-0" style="background:${fundo};color:${texto};border:1px solid ${corForte}">Aa</span>
+                    <span class="flex-1 font-medium text-slate-800">${et.nome}</span>
+                    <div class="flex space-x-2">
+                        <button type="button" onclick="var li=this.closest('li'); abrirEditarEtiqueta(li.dataset.id, li.dataset.nome, li.dataset.cor, li.dataset.corFundo, li.dataset.corTexto)" class="text-blue-600 hover:text-blue-800 text-sm font-bold">Editar</button>
+                        <button type="button" onclick="var li=this.closest('li'); excluirEtiqueta(li.dataset.id, li.dataset.nome)" class="text-red-600 hover:text-red-800 text-sm font-bold">Excluir</button>
+                    </div>
+                </li>`;
+            }).join('');
+        }
+    } catch (e) {
+        ul.innerHTML = '<li class="text-red-500">Erro ao carregar etiquetas.</li>';
+    }
+}
+
+function fecharModalGerenciarEtiquetas() {
+    document.getElementById('modal-gerenciar-etiquetas').classList.add('hidden');
+    document.getElementById('modal-gerenciar-etiquetas').classList.remove('flex');
+}
+
+async function excluirEtiqueta(id, nome) {
+    if (!confirm(`Excluir a etiqueta "${nome}"? As notas não perderão outros dados, apenas esta etiqueta será removida delas.`)) return;
+    try {
+        const res = await fetch(`/api/etiquetas/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            mostrarToast('Etiqueta excluída.', 'success');
+            await carregarEtiquetas();
+            carregarNotas();
+            abrirGerenciarEtiquetasPagina();
+        } else {
+            const data = await res.json();
+            mostrarToast(data.detail || 'Erro ao excluir', 'error');
+        }
+    } catch (e) {
+        mostrarToast('Erro ao excluir etiqueta', 'error');
+    }
+}
+
+async function exportarCSV() {
+    const params = new URLSearchParams();
+    if (filtros.busca) params.append('busca', filtros.busca);
+    if (filtros.etiqueta_id) params.append('etiqueta_id', filtros.etiqueta_id);
+    if (filtros.sem_etiquetas) params.append('sem_etiquetas', 'true');
+    if (filtros.data_inicio) params.append('data_inicio', filtros.data_inicio);
+    if (filtros.data_fim) params.append('data_fim', filtros.data_fim);
+    if (filtros.erp_baixada) params.append('erp_baixada', filtros.erp_baixada);
+    if (filtros.erp_recebida) params.append('erp_recebida', filtros.erp_recebida);
+    if (filtros.erp_lancada) params.append('erp_lancada', filtros.erp_lancada);
+    if (filtros.somente_nao_lancadas) params.append('somente_nao_lancadas', 'true');
+    if (filtros.atraso_min_dias != null) params.append('atraso_min_dias', filtros.atraso_min_dias);
+    window.location.href = `/api/exportacao/notas/csv?${params}`;
+}
+
+// Funções para drag and drop de colunas
+function iniciarDragAndDrop() {
+    const thead = document.getElementById('thead-notas');
+    if (!thead) return;
+    
+    const ths = thead.querySelectorAll('th[draggable="true"]');
+    
+    ths.forEach(th => {
+        th.addEventListener('dragstart', (e) => {
+            colunaArrastando = th.dataset.col;
+            e.dataTransfer.effectAllowed = 'move';
+            th.style.opacity = '0.5';
+        });
+        
+        th.addEventListener('dragend', (e) => {
+            th.style.opacity = '1';
+            th.style.cursor = 'move';
+        });
+        
+        th.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            // Destaca a coluna de destino
+            if (th.dataset.col !== colunaArrastando) {
+                th.style.backgroundColor = '#e2e8f0';
+            }
+        });
+        
+        th.addEventListener('dragleave', (e) => {
+            th.style.backgroundColor = '';
+        });
+        
+        th.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const colunaDestino = th.dataset.col;
+            th.style.backgroundColor = '';
+            
+            if (colunaArrastando && colunaDestino && colunaArrastando !== colunaDestino) {
+                reordenarColunas(colunaArrastando, colunaDestino);
+            }
+            
+            colunaArrastando = null;
+        });
+    });
+}
+
+function reordenarColunas(origem, destino) {
+    const origemIdx = colunasOrdem.indexOf(origem);
+    const destinoIdx = colunasOrdem.indexOf(destino);
+    
+    if (origemIdx === -1 || destinoIdx === -1) return;
+    
+    // Remove da posição original
+    colunasOrdem.splice(origemIdx, 1);
+    // Insere na nova posição
+    colunasOrdem.splice(destinoIdx, 0, origem);
+    
+    // Aplica nova ordem
+    aplicarOrdemColunas();
+    salvarPreferencias();
+    
+    // Recarrega notas para aplicar nova ordem nas células
+    carregarNotas();
+}
+
+function aplicarOrdemColunas() {
+    const tr = document.getElementById('tr-cabecalho');
+    if (!tr) return;
+    
+    const ths = Array.from(tr.querySelectorAll('th'));
+    
+    // Ordena os ths conforme colunasOrdem
+    const thsOrdenados = colunasOrdem.map(col => 
+        ths.find(th => th.dataset.col === col)
+    ).filter(Boolean);
+    
+    // Reordena no DOM
+    thsOrdenados.forEach(th => tr.appendChild(th));
+}
+
+function chaveLocalStorage(base) {
+    if (usuarioId) {
+        return `${base}_${usuarioId}`;
+    }
+    return base;
+}
+
+async function carregarUsuarioAtual() {
+    try {
+        const res = await fetch('/auth/me');
+        if (res.ok) {
+            const data = await res.json();
+            usuarioId = data.id;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar usuário:', error);
+    }
+}
+
+// Salvar e carregar preferências
+function salvarPreferencias() {
+    localStorage.setItem(chaveLocalStorage('notas_ordenacao'), JSON.stringify(ordenacao));
+    localStorage.setItem(chaveLocalStorage('notas_colunas_ordem'), JSON.stringify(colunasOrdem));
+}
+
+function carregarPreferencias() {
+    const ordenacaoSalva = localStorage.getItem(chaveLocalStorage('notas_ordenacao'));
+    const colunasSalvas = localStorage.getItem(chaveLocalStorage('notas_colunas_ordem'));
+    const colunasPadrao = ['checkbox', 'etiquetas', 'acoes', 'data', 'atraso', 'fornecedor', 'numero', 'valor', 'nat', 'baixada', 'recebida', 'lancada', 'transacao', 'situacao', 'tipo'];
+    
+    if (ordenacaoSalva) {
+        ordenacao = JSON.parse(ordenacaoSalva);
+    }
+    
+    if (colunasSalvas) {
+        try {
+            const salvas = JSON.parse(colunasSalvas);
+            // Garante colunas novas (nat/erp/atraso) mesmo com preferência antiga
+            const faltando = colunasPadrao.filter((c) => !salvas.includes(c));
+            colunasOrdem = salvas.concat(faltando);
+        } catch (e) {
+            colunasOrdem = colunasPadrao.slice();
+        }
+    }
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', async () => {
+    await carregarUsuarioAtual();
+    carregarPreferencias();
+    aplicarOrdemColunas();
+    atualizarIconesOrdenacao();
+    iniciarDragAndDrop();
+    iniciarScrollTabela();
+    carregarEtiquetas();
+    carregarNotas();
+});
+</script>
+{% endblock %}

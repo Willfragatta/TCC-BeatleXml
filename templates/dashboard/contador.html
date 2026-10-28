@@ -1,0 +1,79 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Escritório - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="bg-white rounded-xl shadow-md border border-slate-200 p-6">
+        <h2 class="text-xl font-bold text-slate-800">Empresas do escritório</h2>
+        <p class="text-sm text-slate-500 mt-1">Busque por nome ou CNPJ. A empresa escolhida fica ativa no menu.</p>
+        <input id="busca-escritorio" type="search" autocomplete="off" placeholder="Nome ou CNPJ"
+               class="mt-4 w-full max-w-xl px-4 py-2 border border-slate-300 rounded-lg">
+        {% if empresa %}
+        <p class="text-sm text-slate-600 mt-3">Ativa agora: <strong>{{ empresa.razao_social }}</strong> · {{ empresa.cnpj }}</p>
+        {% endif %}
+        <a href="/static/releases/BeatleContador-1.1.0.exe" download
+           class="inline-flex items-center mt-4 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg">
+            Baixar sincronizador (Windows)
+        </a>
+        <p class="text-xs text-slate-500 mt-2">O certificado fica no site. Use Entrar, depois Iniciar buscas. Pode pausar empresa a empresa.</p>
+    </div>
+    <div id="lista-escritorio" class="bg-white rounded-xl shadow-md border border-slate-200 divide-y"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const busca = document.getElementById('busca-escritorio');
+    const lista = document.getElementById('lista-escritorio');
+    let empresas = [];
+
+    function esc(t) {
+        const d = document.createElement('div');
+        d.textContent = t == null ? '' : String(t);
+        return d.innerHTML;
+    }
+    function setCookie(name, value) {
+        document.cookie = name + '=' + value + ';path=/;max-age=31536000;SameSite=Lax';
+    }
+
+    function desenhar() {
+        const termoBruto = (busca.value || '').trim().toLowerCase();
+        const soDigitos = termoBruto.replace(/\D/g, '');
+        const termo = soDigitos.length >= 3 && !/[a-z]/i.test(termoBruto) ? soDigitos : termoBruto;
+        const filtradas = empresas.filter(function(empresa) {
+            if (!termo) return true;
+            const nome = (empresa.razao_social || '').toLowerCase();
+            const cnpj = String(empresa.cnpj || '').replace(/\D/g, '');
+            return nome.indexOf(termo) !== -1 || cnpj.indexOf(termo) !== -1;
+        });
+        if (!filtradas.length) {
+            lista.innerHTML = '<p class="p-6 text-sm text-slate-500">Nenhuma empresa encontrada.</p>';
+            return;
+        }
+        lista.innerHTML = filtradas.map(function(empresa) {
+            const status = empresa.status || '';
+            return '<button type="button" data-id="' + empresa.id + '" class="w-full text-left px-6 py-4 hover:bg-blue-50">'
+                + '<span class="font-medium text-slate-800">' + esc(empresa.razao_social || '') + '</span>'
+                + '<span class="block text-sm text-slate-500">' + esc(empresa.cnpj || '') + (status ? ' · ' + esc(status) : '') + '</span>'
+                + '</button>';
+        }).join('');
+        lista.querySelectorAll('button[data-id]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                setCookie('empresa_ativa', btn.getAttribute('data-id'));
+                window.location.href = '/notas';
+            });
+        });
+    }
+
+    fetch('/api/empresas').then(function(r) { return r.json(); }).then(function(data) {
+        empresas = Array.isArray(data) ? data : [];
+        desenhar();
+    }).catch(function() {
+        lista.innerHTML = '<p class="p-6 text-sm text-red-600">Não foi possível carregar as empresas.</p>';
+    });
+    busca.addEventListener('input', desenhar);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="scroll-pt-24">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeatleXML — NF-e e NFC-e para empresas e contadores</title>
+    {% include "partials/meta.html" %}
+    {% include "partials/gtag.html" %}
+    {% include "partials/recaptcha.html" %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .landing-ease { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            .landing-ease, .group-open\:rotate-180 { transition: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-white font-sans text-slate-900">
+    <header class="sticky top-0 z-50 bg-blue-900/95 backdrop-blur text-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3">
+                <img src="/static/img/beatlexmlLogo.png" alt="BeatleXML" class="h-10 w-auto" style="filter: brightness(0) invert(1);">
+            </a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-blue-100">
+                <a href="/" class="landing-ease hover:text-white">Início</a>
+                <a href="#modulos" class="landing-ease hover:text-white">Módulos</a>
+                <a href="#para-quem" class="landing-ease hover:text-white">Para quem</a>
+                <a href="#faq" class="landing-ease hover:text-white">Perguntas</a>
+                <a href="#contato" class="landing-ease hover:text-white">Contato</a>
+            </nav>
+            <div class="flex items-center gap-3">
+                <a href="/auth/login" class="text-sm text-blue-100 landing-ease hover:text-white">Entrar</a>
+                <a href="/auth/cadastro" class="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg landing-ease hover:bg-blue-700">Criar conta</a>
+            </div>
+        </div>
+    </header>
+
+    <section class="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-900 to-blue-800">
+        <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(59,130,246,0.35),_transparent_55%)]"></div>
+        <div class="relative max-w-6xl mx-auto px-6 py-16 md:py-20 grid md:grid-cols-2 gap-12 items-center">
+            <div>
+                <p class="text-xs uppercase tracking-[0.2em] text-blue-300 mb-3">Para empresas e contadores</p>
+                <h1 class="text-4xl md:text-5xl font-semibold text-white leading-tight">
+                    Pare de caçar XML no fim do mês. Notas e vencimentos no mesmo lugar.
+                </h1>
+                <p class="text-blue-100 mt-5 text-lg">
+                    O BeatleXML é a ponte entre a sua loja, a contabilidade e o sistema que você já usa.
+                    As notas chegam da SEFAZ, os boletos ficam visíveis e os cupons do caixa
+                    sobem sozinhos pela pasta do computador.
+                </p>
+                <div class="mt-8 flex flex-wrap gap-4">
+                    <a href="/auth/cadastro?tipo=empresa" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium landing-ease hover:bg-blue-700 shadow-lg shadow-blue-950/40">
+                        Sou empresa
+                    </a>
+                    <a href="/auth/cadastro?tipo=contador" class="px-6 py-3 rounded-lg border border-white/40 text-white landing-ease hover:border-white hover:bg-white/10">
+                        Sou contador
+                    </a>
+                    <a href="#video-apresentacao" class="px-6 py-3 rounded-lg border border-white/40 text-white landing-ease hover:border-white hover:bg-white/10">
+                        Ver o produto em 1 minuto
+                    </a>
+                </div>
+                <div class="mt-8 flex flex-wrap gap-6 text-sm text-blue-100">
+                    <span><i class="fas fa-check text-lime-400 mr-2"></i>Fim do retrabalho</span>
+                    <span><i class="fas fa-check text-lime-400 mr-2"></i>Controle financeiro na palma da mão</span>
+                    <span><i class="fas fa-check text-lime-400 mr-2"></i>Encaixa no seu ERP</span>
+                </div>
+            </div>
+            <div id="video-apresentacao" class="rounded-2xl overflow-hidden shadow-2xl shadow-blue-950/50 ring-1 ring-white/20 bg-blue-950 landing-ease hover:shadow-blue-950/70">
+                <video class="w-full aspect-video" controls playsinline preload="metadata" aria-label="Apresentação do BeatleXML">
+                    <source src="https://storage.googleapis.com/beatlexml-assets-site/video%20apresentacao%20geral.mp4" type="video/mp4">
+                </video>
+            </div>
+        </div>
+    </section>
+
+    <section id="problema" class="bg-blue-50">
+        <div class="max-w-6xl mx-auto px-6 py-16">
+            <h2 class="text-3xl font-semibold text-blue-950 text-center">O mês fecha. A planilha, não.</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-10">
+                <div class="rounded-2xl border border-rose-100 bg-rose-50/60 p-8 landing-ease hover:shadow-md">
+                    <p class="text-xs font-bold uppercase tracking-wide text-rose-700 mb-3">Como costuma ser</p>
+                    <ul class="space-y-3 text-slate-700">
+                        <li class="flex gap-3"><i class="fas fa-times text-rose-500 mt-1"></i><span>Notas espalhadas em e-mail, pasta e WhatsApp.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-times text-rose-500 mt-1"></i><span>Boleto num lugar, XML da nota em outro arquivo.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-times text-rose-500 mt-1"></i><span>O contador pede de novo o que a loja já mandou.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-times text-rose-500 mt-1"></i><span>O vencimento do boleto só aparece quando alguém abre a nota na mão.</span></li>
+                    </ul>
+                </div>
+                <div class="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-8 landing-ease hover:shadow-md">
+                    <p class="text-xs font-bold uppercase tracking-wide text-emerald-800 mb-3">Com o BeatleXML</p>
+                    <ul class="space-y-3 text-slate-700">
+                        <li class="flex gap-3"><i class="fas fa-check text-emerald-600 mt-1"></i><span>Uma tela para conferir o que entra, o que vence e o que ainda está em aberto.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-check text-emerald-600 mt-1"></i><span>Você decide; o ERP continua sendo o sistema da loja.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-check text-emerald-600 mt-1"></i><span>A ponte entre empresa, contabilidade e o que você já usa no dia a dia.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-check text-emerald-600 mt-1"></i><span>Menos retrabalho, mais controle no fechamento.</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="modulos" class="bg-white">
+        <div class="max-w-6xl mx-auto px-6 py-16">
+            <div class="text-center max-w-2xl mx-auto">
+                <h2 class="text-3xl font-semibold text-blue-950">Três frentes. Um controle.</h2>
+                <p class="text-slate-600 mt-3">Gestão de notas fiscais e do financeiro lido do XML — no mesmo lugar.</p>
+            </div>
+
+            <article class="mt-14 grid md:grid-cols-2 gap-10 items-center">
+                <div>
+                    <div class="h-1 w-10 rounded-full bg-blue-900 mb-4"></div>
+                    <h3 class="text-2xl font-semibold text-blue-950">Notas fiscais sem caça ao XML.</h3>
+                    <p class="text-slate-600 mt-4">
+                        As notas da SEFAZ organizadas para a loja e para o escritório.
+                        Automação fiscal de verdade: menos “me manda o arquivo de novo”.
+                    </p>
+                </div>
+                <div class="rounded-2xl overflow-hidden shadow-xl shadow-blue-900/20 ring-1 ring-blue-900/10 bg-blue-950 landing-ease hover:shadow-2xl">
+                    <video class="w-full aspect-video" controls playsinline preload="metadata" aria-label="Módulo de notas fiscais">
+                        <source src="https://storage.googleapis.com/beatlexml-assets-site/Modulo%20notas.mp4" type="video/mp4">
+                    </video>
+                </div>
+            </article>
+
+            <article class="mt-16 grid md:grid-cols-2 gap-10 items-center">
+                <div class="rounded-2xl overflow-hidden shadow-xl shadow-blue-900/20 ring-1 ring-blue-900/10 bg-blue-950 landing-ease hover:shadow-2xl md:order-1 order-2">
+                    <video class="w-full aspect-video" controls playsinline preload="metadata" aria-label="Módulo financeiro">
+                        <source src="https://storage.googleapis.com/beatlexml-assets-site/Modulo%20financeiro.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <div class="md:order-2 order-1">
+                    <div class="h-1 w-10 rounded-full bg-blue-900 mb-4"></div>
+                    <h3 class="text-2xl font-semibold text-blue-950">Boletos e contas sob controle.</h3>
+                    <p class="text-slate-600 mt-4">
+                        O que vence, o que pagou, o que ainda está em aberto — junto das notas,
+                        não numa planilha à parte. Controle financeiro na palma da mão.
+                    </p>
+                </div>
+            </article>
+
+            <article class="mt-16 grid md:grid-cols-2 gap-10 items-center">
+                <div>
+                    <div class="h-1 w-10 rounded-full bg-blue-900 mb-4"></div>
+                    <h3 class="text-2xl font-semibold text-blue-950">Cupom de caixa sem pendrive e sem e-mail.</h3>
+                    <p class="text-slate-600 mt-4">
+                        O Beatle Uploader fica no computador da loja, observa a pasta em que o sistema
+                        grava a NFC-e e envia o arquivo para o escritório. A pessoa do caixa não precisa
+                        lembrar de compactar a pasta no fim do mês.
+                    </p>
+                </div>
+                <div class="rounded-2xl border border-blue-100 bg-blue-50 p-8">
+                    <p class="text-sm font-semibold text-blue-950">O que a demonstração mostra</p>
+                    <ul class="mt-4 space-y-2 text-slate-700 text-sm">
+                        <li>Notas de entrada lidas do XML, com vencimento no financeiro.</li>
+                        <li>Download em lote para o contador, em arquivo ZIP.</li>
+                        <li>DANFE em PDF quando o documento está completo.</li>
+                    </ul>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section id="para-quem" class="bg-blue-50">
+        <div class="max-w-6xl mx-auto px-6 py-16">
+            <h2 class="text-3xl font-semibold text-blue-950 text-center">Feito para quem vende e para quem contabiliza.</h2>
+            <div class="grid md:grid-cols-2 gap-6 mt-10">
+                <div class="rounded-2xl border border-blue-100 bg-white p-8 shadow-sm landing-ease hover:border-blue-200 hover:shadow-md">
+                    <div class="h-12 w-12 rounded-lg bg-blue-900 text-white flex items-center justify-center mb-4">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-blue-950">Empresas</h3>
+                    <ul class="mt-4 space-y-3 text-slate-600">
+                        <li class="flex gap-3"><i class="fas fa-check text-lime-500 mt-1"></i><span>Controle na palma da mão: notas e vencimentos juntos.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-check text-lime-500 mt-1"></i><span>Menos perda no cartão e vencimentos à vista.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-check text-lime-500 mt-1"></i><span>Várias lojas no mesmo login, cada uma no seu espaço.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-check text-lime-500 mt-1"></i><span>Integração perfeita com o ERP que a loja já usa.</span></li>
+                    </ul>
+                </div>
+                <div class="rounded-2xl border border-blue-100 bg-white p-8 shadow-sm landing-ease hover:border-blue-200 hover:shadow-md">
+                    <div class="h-12 w-12 rounded-lg bg-blue-900 text-white flex items-center justify-center mb-4">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-blue-950">Contadores</h3>
+                    <ul class="mt-4 space-y-3 text-slate-600">
+                        <li class="flex gap-3"><i class="fas fa-check text-lime-500 mt-1"></i><span>Clientes organizados, menos retrabalho de arquivo.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-check text-lime-500 mt-1"></i><span>Sistema para contadores que acompanha várias empresas.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-check text-lime-500 mt-1"></i><span>Encaixa no ERP de cada cliente, sem trocar o sistema deles.</span></li>
+                        <li class="flex gap-3"><i class="fas fa-check text-lime-500 mt-1"></i><span>Exportação pronta para o fechamento do mês.</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="faq" class="bg-blue-50 border-t border-blue-100">
+        <div class="max-w-3xl mx-auto px-6 py-16">
+            <h2 class="text-3xl font-semibold text-blue-950 text-center">Perguntas frequentes</h2>
+            <p class="text-slate-600 text-center mt-3">O essencial para empresários e escritórios que buscam organizar a nota e o cupom do caixa.</p>
+            <div class="mt-10 space-y-3">
+                <details class="group bg-white border border-blue-100 rounded-xl p-5 landing-ease hover:border-blue-200 hover:shadow-md">
+                    <summary class="cursor-pointer font-semibold text-blue-950 list-none flex justify-between items-center gap-4 [&::-webkit-details-marker]:hidden">
+                        <h3 class="text-base font-semibold">O BeatleXML integra com o meu ERP atual?</h3>
+                        <i class="fas fa-chevron-down text-blue-600 text-sm group-open:rotate-180 landing-ease"></i>
+                    </summary>
+                    <p class="text-slate-600 mt-3 text-sm leading-relaxed">Sim. O BeatleXML é a ponte entre a loja, a contabilidade e o sistema que você já usa. Você confere notas e vencimentos aqui e segue lançando no seu ERP.</p>
+                </details>
+                <details class="group bg-white border border-blue-100 rounded-xl p-5 landing-ease hover:border-blue-200 hover:shadow-md">
+                    <summary class="cursor-pointer font-semibold text-blue-950 list-none flex justify-between items-center gap-4 [&::-webkit-details-marker]:hidden">
+                        <h3 class="text-base font-semibold">Preciso trocar o sistema da loja?</h3>
+                        <i class="fas fa-chevron-down text-blue-600 text-sm group-open:rotate-180 landing-ease"></i>
+                    </summary>
+                    <p class="text-slate-600 mt-3 text-sm leading-relaxed">Não. O caixa e o ERP continuam sendo o sistema da operação. O BeatleXML organiza a conferência para você não depender de planilha paralela.</p>
+                </details>
+                <details class="group bg-white border border-blue-100 rounded-xl p-5 landing-ease hover:border-blue-200 hover:shadow-md">
+                    <summary class="cursor-pointer font-semibold text-blue-950 list-none flex justify-between items-center gap-4 [&::-webkit-details-marker]:hidden">
+                        <h3 class="text-base font-semibold">Serve para a minha contabilidade e para os meus clientes?</h3>
+                        <i class="fas fa-chevron-down text-blue-600 text-sm group-open:rotate-180 landing-ease"></i>
+                    </summary>
+                    <p class="text-slate-600 mt-3 text-sm leading-relaxed">Sim. Escritórios acompanham várias empresas no mesmo login, com os dados de cada cliente separados, menos retrabalho de arquivo e exportação pronta para o fechamento.</p>
+                </details>
+                <details class="group bg-white border border-blue-100 rounded-xl p-5 landing-ease hover:border-blue-200 hover:shadow-md">
+                    <summary class="cursor-pointer font-semibold text-blue-950 list-none flex justify-between items-center gap-4 [&::-webkit-details-marker]:hidden">
+                        <h3 class="text-base font-semibold">De onde vêm as notas fiscais?</h3>
+                        <i class="fas fa-chevron-down text-blue-600 text-sm group-open:rotate-180 landing-ease"></i>
+                    </summary>
+                    <p class="text-slate-600 mt-3 text-sm leading-relaxed">As notas chegam da SEFAZ para a empresa, organizadas para a loja e para o escritório, sem caça a arquivo no e-mail.</p>
+                </details>
+                <details class="group bg-white border border-blue-100 rounded-xl p-5 landing-ease hover:border-blue-200 hover:shadow-md">
+                    <summary class="cursor-pointer font-semibold text-blue-950 list-none flex justify-between items-center gap-4 [&::-webkit-details-marker]:hidden">
+                        <h3 class="text-base font-semibold">Como o cupom do caixa chega ao escritório?</h3>
+                        <i class="fas fa-chevron-down text-blue-600 text-sm group-open:rotate-180 landing-ease"></i>
+                    </summary>
+                    <p class="text-slate-600 mt-3 text-sm leading-relaxed">O Beatle Uploader observa a pasta em que o sistema da loja grava a NFC-e e envia o XML. A pessoa do caixa não precisa compactar a pasta no fim do mês.</p>
+                </details>
+                <details class="group bg-white border border-blue-100 rounded-xl p-5 landing-ease hover:border-blue-200 hover:shadow-md">
+                    <summary class="cursor-pointer font-semibold text-blue-950 list-none flex justify-between items-center gap-4 [&::-webkit-details-marker]:hidden">
+                        <h3 class="text-base font-semibold">Meus dados ficam misturados com os de outra empresa?</h3>
+                        <i class="fas fa-chevron-down text-blue-600 text-sm group-open:rotate-180 landing-ease"></i>
+                    </summary>
+                    <p class="text-slate-600 mt-3 text-sm leading-relaxed">Não. Cada loja vê apenas os próprios dados. Várias empresas podem estar no mesmo login, cada uma no seu espaço.</p>
+                </details>
+                <details class="group bg-white border border-blue-100 rounded-xl p-5 landing-ease hover:border-blue-200 hover:shadow-md">
+                    <summary class="cursor-pointer font-semibold text-blue-950 list-none flex justify-between items-center gap-4 [&::-webkit-details-marker]:hidden">
+                        <h3 class="text-base font-semibold">Como começo?</h3>
+                        <i class="fas fa-chevron-down text-blue-600 text-sm group-open:rotate-180 landing-ease"></i>
+                    </summary>
+                    <p class="text-slate-600 mt-3 text-sm leading-relaxed">Crie a conta no site. O suporte libera o acesso e você começa pela empresa. Dúvidas: use o formulário de contato.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <section class="bg-white">
+        <div class="max-w-6xl mx-auto px-6 py-16">
+            <div class="bg-blue-900 text-white rounded-2xl p-10 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl shadow-blue-900/20">
+                <div>
+                    <h2 class="text-3xl font-semibold">Comece a conferir de verdade. A planilha pode esperar.</h2>
+                    <p class="text-blue-100 mt-3">Cadastro rápido. O suporte libera o acesso. Você passa a ver notas e vencimentos no mesmo lugar.</p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <a href="/auth/cadastro?tipo=empresa" class="bg-white text-blue-900 px-6 py-3 rounded-lg font-medium landing-ease hover:bg-blue-50">
+                        Sou empresa
+                    </a>
+                    <a href="/auth/cadastro?tipo=contador" class="px-6 py-3 rounded-lg border border-blue-400 text-white landing-ease hover:border-white hover:bg-white/10">
+                        Sou contador
+                    </a>
+                    <a href="#contato" class="px-6 py-3 rounded-lg border border-blue-400 text-white landing-ease hover:border-white hover:bg-white/10">
+                        Falar com a gente
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contato" class="bg-blue-50">
+        <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-10">
+            <div>
+                <h2 class="text-3xl font-semibold text-blue-950">Fale com a gente</h2>
+                <p class="text-slate-600 mt-3">
+                    Dúvidas sobre implantação, certificado ou o envio do cupom?
+                    Atendemos empresas em Mangueirinha e região — e à distância.
+                </p>
+                <div class="mt-8 space-y-4 text-sm text-slate-600">
+                    <div class="flex items-start gap-3">
+                        <div class="h-10 w-10 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div>
+                            <p class="text-blue-950 font-medium">Email</p>
+                            <a href="/#contato" class="landing-ease hover:text-blue-900 underline">{{ contato_email }}</a>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="h-10 w-10 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div>
+                            <p class="text-blue-950 font-medium">Telefone</p>
+                            <p>(46) 99905-2200</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="h-10 w-10 rounded-lg bg-blue-900 text-white flex items-center justify-center">
+                            <i class="fas fa-location-dot"></i>
+                        </div>
+                        <div>
+                            <p class="text-blue-950 font-medium">Localização</p>
+                            <p>Mangueirinha, PR — Brasil</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white border border-blue-100 rounded-2xl p-6 shadow-sm landing-ease hover:border-blue-200 hover:shadow-md">
+                <h3 class="text-lg font-semibold text-blue-950">Envie uma mensagem</h3>
+                <form id="form-contato" class="mt-6 space-y-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <input type="text" name="nome" required minlength="2" maxlength="120" placeholder="Nome" class="w-full px-4 py-3 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-900 focus:outline-none">
+                        <input type="email" name="email" required maxlength="255" placeholder="Email" class="w-full px-4 py-3 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-900 focus:outline-none">
+                    </div>
+                    <input type="text" name="empresa" maxlength="200" placeholder="Empresa" class="w-full px-4 py-3 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-900 focus:outline-none">
+                    <textarea name="mensagem" rows="4" required minlength="8" maxlength="4000" placeholder="Como podemos ajudar?" class="w-full px-4 py-3 border border-blue-100 rounded-lg focus:ring-2 focus:ring-blue-900 focus:outline-none"></textarea>
+                    <button type="submit" class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg landing-ease hover:bg-blue-700 disabled:opacity-60">
+                        Enviar mensagem
+                    </button>
+                    <p id="contato-msg" class="hidden text-sm rounded-lg px-3 py-2"></p>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-blue-950 text-blue-200">
+        <div class="max-w-6xl mx-auto px-6 py-10 grid md:grid-cols-3 gap-8 text-sm">
+            <div>
+                <img src="/static/img/beatlexmlLogo.png" alt="BeatleXML" class="h-8 w-auto mb-3" style="filter: brightness(0) invert(1);">
+                <p class="text-blue-300">© {{ ano }} {{ empresa_razao or 'BeatleXML' }}</p>
+                <p class="text-blue-400 mt-1">{{ empresa_cidade or 'Mangueirinha, PR' }}</p>
+                {% if empresa_cnpj %}
+                <p class="text-blue-400 mt-1">CNPJ {{ empresa_cnpj }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <p class="font-semibold text-white mb-2">Acesso e dados</p>
+                <ul class="space-y-1">
+                    <li>Conexão criptografada (HTTPS)</li>
+                    <li>Painel só com conta aprovada</li>
+                    <li>Cada loja vê apenas os próprios dados</li>
+                </ul>
+            </div>
+            <div>
+                <p class="font-semibold text-white mb-2">Legal</p>
+                <ul class="space-y-1">
+                    <li><a href="/privacidade" class="landing-ease hover:text-white">Privacidade</a></li>
+                    <li><a href="/termos" class="landing-ease hover:text-white">Termos de uso</a></li>
+                    <li><a href="/#contato" class="landing-ease hover:text-white">{{ contato_email }}</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="max-w-6xl mx-auto px-6 pb-8 text-xs text-blue-400 leading-relaxed">
+            Quando a chave do reCAPTCHA está configurada, as telas de entrada usam o serviço do Google.
+            Esta demonstração não carrega Google Analytics.
+        </div>
+    </footer>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "BeatleXML",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "url": "{{ canonical }}",
+      "description": "XML e DANFE para a loja e para o escritório contábil. O BeatleXML organiza as notas da Receita e os cupons enviados pelo caixa.",
+      "offers": {
+        "@type": "Offer",
+        "url": "{{ canonical }}auth/cadastro",
+        "description": "Cadastro com liberação pelo suporte"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "O BeatleXML integra com o meu ERP atual?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. O BeatleXML é a ponte entre a loja, a contabilidade e o sistema que você já usa. Você confere notas e vencimentos aqui e segue lançando no seu ERP."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Preciso trocar o sistema da loja?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Não. O caixa e o ERP continuam sendo o sistema da operação. O BeatleXML organiza a conferência para você não depender de planilha paralela."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Serve para a minha contabilidade e para os meus clientes?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. Escritórios acompanham várias empresas no mesmo login, com os dados de cada cliente separados, menos retrabalho de arquivo e exportação pronta para o fechamento."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "De onde vêm as notas fiscais?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "As notas chegam da SEFAZ para a empresa, organizadas para a loja e para o escritório, sem caça a arquivo no e-mail."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Como o cupom do caixa chega ao escritório?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "O Beatle Uploader observa a pasta em que o sistema da loja grava a NFC-e e envia o XML. A pessoa do caixa não precisa compactar a pasta no fim do mês."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Meus dados ficam misturados com os de outra empresa?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Não. Cada loja vê apenas os próprios dados. Várias empresas podem estar no mesmo login, cada uma no seu espaço."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Como começo?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Crie a conta no site. O suporte libera o acesso e você começa pela empresa. Dúvidas: use o formulário de contato."
+          }
+        }
+      ]
+    }
+    </script>
+<script>
+document.getElementById('form-contato').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const form = this;
+    const btn = form.querySelector('[type="submit"]');
+    const box = document.getElementById('contato-msg');
+    const fd = new FormData(form);
+    if (btn) btn.disabled = true;
+    try {
+        if (window.beatleRecaptchaToken) {
+            const token = await window.beatleRecaptchaToken('contato');
+            if (token) {
+                fd.set('g-recaptcha-response', token);
+                fd.set('recaptcha_token', token);
+            }
+        }
+        const res = await fetch('/contato', { method: 'POST', body: fd });
+        const data = await res.json().catch(function () { return {}; });
+        box.classList.remove('hidden');
+        if (res.ok) {
+            box.className = 'text-sm rounded-lg px-3 py-2 bg-emerald-50 text-emerald-800';
+            box.textContent = data.message || 'Mensagem enviada.';
+            form.reset();
+        } else {
+            box.className = 'text-sm rounded-lg px-3 py-2 bg-red-50 text-red-800';
+            box.textContent = data.detail || 'Não foi possível enviar.';
+        }
+    } catch (err) {
+        box.classList.remove('hidden');
+        box.className = 'text-sm rounded-lg px-3 py-2 bg-red-50 text-red-800';
+        box.textContent = 'Não foi possível enviar.';
+    }
+    if (btn) btn.disabled = false;
+});
+</script>
+</body>
+</html>

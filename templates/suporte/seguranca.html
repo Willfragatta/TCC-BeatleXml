@@ -1,0 +1,43 @@
+{% extends "suporte/base.html" %}
+
+{% block title %}Minha segurança — Suporte{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto bg-white rounded-xl shadow p-6">
+    <h1 class="text-xl font-semibold text-slate-900 mb-2">Verificação em dois fatores</h1>
+    <p class="text-sm text-slate-500 mb-4">Se ligar, depois da senha enviamos um código de 6 dígitos para o seu e-mail.</p>
+    <form id="form-2fa" class="space-y-3">
+        <label class="flex items-start gap-3 p-3 rounded-lg border">
+            <input type="checkbox" id="dois-fatores" class="mt-1" {% if usuario.dois_fatores_email %}checked{% endif %}>
+            <span class="text-sm">Pedir código no e-mail ao entrar</span>
+        </label>
+        <div>
+            <label class="block text-sm font-medium mb-1">Senha atual</label>
+            <input type="password" id="senha-2fa" required class="w-full border rounded-lg px-3 py-2">
+        </div>
+        <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg">Salvar</button>
+        <p id="msg" class="hidden text-sm"></p>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('form-2fa').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const msg = document.getElementById('msg');
+    const res = await fetch('/config/dois-fatores', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            ligado: document.getElementById('dois-fatores').checked,
+            senha_atual: document.getElementById('senha-2fa').value,
+        }),
+    });
+    const data = await res.json();
+    msg.classList.remove('hidden');
+    msg.className = 'text-sm ' + (res.ok ? 'text-emerald-700' : 'text-red-700');
+    msg.textContent = data.message || data.detail || (res.ok ? 'Salvo' : 'Erro');
+});
+</script>
+{% endblock %}

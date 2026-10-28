@@ -1,0 +1,42 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Ferramentas - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden max-w-3xl mx-auto">
+    <div class="p-8">
+        <h2 class="text-2xl font-bold text-slate-800 mb-2">Agentes locais</h2>
+        <p class="text-slate-600 mb-6">
+            Nesta versão de demonstração os programas rodam a partir do código-fonte,
+            na mesma máquina do navegador. Eles conversam com <span class="font-mono">http://localhost:8000</span>.
+        </p>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 class="font-bold text-blue-900 mb-2">Beatle Uploader</h3>
+            <p class="text-sm text-blue-800 mb-3">
+                Observa as pastas em que o caixa grava os cupons (NFC-e) e as notas emitidas (NF-e)
+                e envia os arquivos XML para o sistema.
+            </p>
+            <ol class="list-decimal list-inside text-blue-800 space-y-1 text-sm">
+                <li>No terminal, na pasta do projeto: <span class="font-mono">pip install -r beatle_uploader/requirements.txt</span></li>
+                <li>Execute <span class="font-mono">python beatle_uploader/main.py</span></li>
+                <li>Informe a URL <span class="font-mono">http://localhost:8000</span>, o e-mail e a senha de um usuário da empresa</li>
+                <li>Escolha a pasta e clique em Iniciar monitoramento</li>
+            </ol>
+        </div>
+
+        <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
+            <h3 class="font-bold text-slate-900 mb-2">Beatle Contador</h3>
+            <p class="text-sm text-slate-700 mb-3">
+                Programa do escritório. Ele não guarda as notas: pede ao servidor que consulte a Receita
+                e mostra se a empresa está na fila ou aguardando a liberação de duas horas.
+            </p>
+            <ol class="list-decimal list-inside text-slate-700 space-y-1 text-sm">
+                <li>Execute <span class="font-mono">python beatle_contador/main.py</span></li>
+                <li>Entre com o usuário de contador da demonstração</li>
+                <li>A consulta à Receita só ocorre se a empresa tiver certificado digital A1</li>
+            </ol>
+        </div>
+    </div>
+</div>
+{% endblock %}

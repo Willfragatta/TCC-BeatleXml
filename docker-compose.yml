@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: beatle
+      POSTGRES_PASSWORD: beatle
+      POSTGRES_DB: beatle
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beatle -d beatle"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      ENV: development
+      DATABASE_URL: postgresql://beatle:beatle@db:5432/beatle
+      SECRET_KEY_JWT: demonstracao-banca-beatlexml-2026-nao-usar-em-producao
+      SECRET_KEY_CERTIFICADOS: CCwBwredcB_cEfHR5GdpX79qjlxk5CY5cT_VzPROiQ4=
+      SITE_URL: http://localhost:8000
+      CONTATO_EMAIL: contato@localhost
+      EMPRESA_CIDADE: Palmas, PR
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_STARTTLS: "0"
+      SMTP_FROM: noreply@localhost
+      SMTP_FROM_NAME: BeatleXML
+      MAIL_SUPORTE: contato@localhost
+      RECAPTCHA_SITE_KEY: ""
+      RECAPTCHA_SECRET_KEY: ""
+      GA_MEASUREMENT_ID: ""
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # Fora do "sobe padrão". Sem certificado A1 a rotina ignora a empresa
+  # e não consulta a SEFAZ. Ligue só se quiser ver o ciclo: 
+  # docker compose --profile sefaz up
+  worker:
+    profiles: ["sefaz"]
+    build: .
+    command: python worker.py
+    environment:
+      ENV: development
+      DATABASE_URL: postgresql://beatle:beatle@db:5432/beatle
+      SECRET_KEY_JWT: demonstracao-banca-beatlexml-2026-nao-usar-em-producao
+      SECRET_KEY_CERTIFICADOS: CCwBwredcB_cEfHR5GdpX79qjlxk5CY5cT_VzPROiQ4=
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_STARTTLS: "0"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -1,0 +1,508 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Financeiro - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+        <div>
+            <h2 class="text-xl font-bold text-slate-800">Financeiro (A Pagar)</h2>
+            <p class="text-sm text-slate-500">Vencimentos e pagamentos das notas fiscais</p>
+        </div>
+        <div class="flex space-x-2">
+            <a id="btn-export-excel" href="#" onclick="exportarExcel(); return false;" 
+               class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-bold flex items-center transition shadow-lg">
+                <i class="fas fa-file-excel mr-2"></i> Exportar Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Totais -->
+    <div class="p-4 bg-slate-50 border-b grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-lg border border-slate-200 p-4">
+            <p class="text-sm font-medium text-slate-500">A vencer hoje</p>
+            <p id="total-a-vencer-hoje" class="text-xl font-bold text-slate-800">R$ 0,00</p>
+        </div>
+        <div class="bg-white rounded-lg border border-slate-200 p-4">
+            <p class="text-sm font-medium text-slate-500">Vencido</p>
+            <p id="total-vencido" class="text-xl font-bold text-red-600">R$ 0,00</p>
+        </div>
+        <div class="bg-white rounded-lg border border-slate-200 p-4">
+            <p class="text-sm font-medium text-slate-500">Pago no mês</p>
+            <p id="total-pago-mes" class="text-xl font-bold text-green-600">R$ 0,00</p>
+        </div>
+    </div>
+
+    <!-- Filtros e busca -->
+    <div class="p-4 bg-slate-50 border-b">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-4">
+            <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Buscar boletos</label>
+                <input type="text" id="busca" placeholder="Emitente, número da nota, chave..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                       onkeypress="if(event.key==='Enter') aplicarFiltros()">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Vencimento de</label>
+                <input type="date" id="data-inicio" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Vencimento até</label>
+                <input type="date" id="data-fim" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Forma pagamento</label>
+                <select id="forma-pagamento" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Todas</option>
+                    <option value="15">Boleto</option>
+                    <option value="17">PIX</option>
+                    <option value="03">Cartão Crédito</option>
+                    <option value="04">Cartão Débito</option>
+                    <option value="01">Dinheiro</option>
+                    <option value="99">Outros</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button onclick="aplicarFiltros()" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">
+                    <i class="fas fa-search mr-2"></i> Buscar
+                </button>
+                <button type="button" onclick="limparFiltros()" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition whitespace-nowrap">
+                    <i class="fas fa-times mr-1"></i> Limpar
+                </button>
+            </div>
+        </div>
+        <div class="text-sm text-gray-600">
+            <span id="total-parcelas">Carregando...</span>
+        </div>
+    </div>
+
+    <!-- Abas Não pagos / Pagos -->
+    <div class="border-b border-slate-200 bg-slate-50 px-4">
+        <nav class="flex gap-1" aria-label="Abas">
+            <button type="button" id="tab-nao-pagos" onclick="trocarAba('nao_pagos')" 
+                    class="px-4 py-3 text-sm font-bold border-b-2 -mb-px transition rounded-t-lg tab-aba">
+                Não pagos
+            </button>
+            <button type="button" id="tab-pagos" onclick="trocarAba('pagos')" 
+                    class="px-4 py-3 text-sm font-bold border-b-2 -mb-px border-transparent text-slate-500 hover:text-slate-700 transition rounded-t-lg tab-aba">
+                Pagos
+            </button>
+        </nav>
+    </div>
+
+    <!-- Barra ação em lote -->
+    <div id="barra-bulk" class="hidden px-4 py-2 bg-slate-100 border-b border-slate-200 flex items-center gap-3">
+        <span id="texto-selecionados" class="text-sm text-slate-600">0 selecionado(s)</span>
+        <button type="button" id="btn-bulk-pago" onclick="marcarSelecionadosComoPago()" class="hidden px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm hover:bg-emerald-700">
+            <i class="fas fa-check mr-1"></i> Marcar selecionados como pago?
+        </button>
+        <button type="button" id="btn-bulk-nao-pago" onclick="marcarSelecionadosComoNaoPago()" class="hidden px-4 py-2 bg-amber-600 text-white rounded-lg font-bold text-sm hover:bg-amber-700">
+            <i class="fas fa-undo mr-1"></i> Marcar selecionados como não pago?
+        </button>
+    </div>
+
+    <!-- Tabela -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-3 text-center w-12">
+                        <input type="checkbox" id="select-all-parcelas" title="Selecionar todos" class="rounded border-slate-300" onchange="toggleSelectAll(this)">
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Detalhes</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Emitente</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Vencimento</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Valor</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Forma pagamento</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Data pagamento</th>
+                    <th class="px-6 py-3 text-center text-xs font-bold text-slate-500 uppercase">Marcar como</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-parcelas" class="bg-white divide-y divide-slate-100">
+                <tr>
+                    <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>Carregando parcelas...</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    <div id="paginacao" class="p-4 border-t bg-slate-50 flex justify-between items-center">
+        <div class="text-sm text-gray-600">
+            <span id="info-paginacao">Carregando...</span>
+        </div>
+        <div class="flex space-x-2">
+            <button id="btn-prev" onclick="carregarPagina(paginaAtual - 1)" 
+                    class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled>
+                <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <button id="btn-next" onclick="carregarPagina(paginaAtual + 1)" 
+                    class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled>
+                Próxima <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal data do pagamento (ao marcar como pago) -->
+<div id="modal-data-pagamento" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+        <h3 class="text-lg font-bold text-slate-800 mb-4">Data do pagamento</h3>
+        <label class="block text-sm font-medium text-slate-600 mb-2">Data</label>
+        <input type="date" id="input-data-pagamento" class="w-full px-4 py-2 border border-slate-300 rounded-lg mb-4">
+        <div class="flex justify-end gap-2">
+            <button type="button" onclick="fecharModalDataPagamento()" class="px-4 py-2 border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-50">Cancelar</button>
+            <button type="button" id="btn-confirmar-data-pagamento" class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+{% include "notas/modal_detalhes.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+let paginaAtual = 0;
+let totalParcelas = 0;
+let limite = 20;
+let filtros = {};
+let abaAtual = 'nao_pagos';
+let parcelaIdParaData = null;
+let bulkIds = [];
+
+function formatarMoeda(v) {
+    if (v == null || isNaN(v)) return 'R$ 0,00';
+    return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatarData(s) {
+    if (!s) return '-';
+    try {
+        const d = new Date(s);
+        return d.toLocaleDateString('pt-BR');
+    } catch (e) { return s; }
+}
+
+function statusBadge(status) {
+    const classes = {
+        pendente: 'bg-amber-100 text-amber-800',
+        vencido: 'bg-red-100 text-red-800',
+        pago: 'bg-green-100 text-green-800'
+    };
+    return '<span class="px-2 py-1 rounded text-xs font-bold ' + (classes[status] || 'bg-slate-100 text-slate-800') + '">' + status + '</span>';
+}
+
+function formaComParcela(p) {
+    const label = p.forma_pagamento_label || 'Outros';
+    const num = p.numero_parcela;
+    if (num && String(num).includes('/')) return label + ' (' + num + ')';
+    return label;
+}
+
+function trocarAba(aba) {
+    abaAtual = aba;
+    filtros.status = aba === 'pagos' ? 'pago' : 'nao_pagos';
+    paginaAtual = 0;
+    document.getElementById('tab-nao-pagos').classList.remove('border-blue-600', 'text-blue-600');
+    document.getElementById('tab-nao-pagos').classList.add('border-transparent', 'text-slate-500');
+    document.getElementById('tab-pagos').classList.remove('border-blue-600', 'text-blue-600');
+    document.getElementById('tab-pagos').classList.add('border-transparent', 'text-slate-500');
+    if (aba === 'nao_pagos') {
+        document.getElementById('tab-nao-pagos').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-nao-pagos').classList.remove('border-transparent', 'text-slate-500');
+    } else {
+        document.getElementById('tab-pagos').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-pagos').classList.remove('border-transparent', 'text-slate-500');
+    }
+    carregarParcelas();
+}
+
+async function carregarParcelas() {
+    const params = new URLSearchParams();
+    params.set('skip', paginaAtual * limite);
+    params.set('limit', limite);
+    params.set('order_by', 'data_vencimento');
+    params.set('order_dir', 'asc');
+    if (filtros.busca) params.set('busca', filtros.busca);
+    if (filtros.data_vencimento_inicio) params.set('data_vencimento_inicio', filtros.data_vencimento_inicio);
+    if (filtros.data_vencimento_fim) params.set('data_vencimento_fim', filtros.data_vencimento_fim);
+    if (filtros.forma_pagamento) params.set('forma_pagamento', filtros.forma_pagamento);
+    if (filtros.status) params.set('status', filtros.status);
+
+    try {
+        const res = await fetch('/api/financeiro/parcelas?' + params.toString());
+        if (!res.ok) throw new Error('Erro ao carregar');
+        const data = await res.json();
+
+        totalParcelas = data.total;
+        const totais = data.totais || {};
+        document.getElementById('total-a-vencer-hoje').textContent = formatarMoeda(totais.a_vencer_hoje);
+        document.getElementById('total-vencido').textContent = formatarMoeda(totais.vencido);
+        document.getElementById('total-pago-mes').textContent = formatarMoeda(totais.pago_mes);
+        document.getElementById('total-parcelas').textContent = totalParcelas + ' parcela(s)';
+
+        const tbody = document.getElementById('tbody-parcelas');
+        if (!data.parcelas || data.parcelas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-8 text-center text-gray-500">Nenhuma parcela encontrada.</td></tr>';
+            document.getElementById('barra-bulk').classList.add('hidden');
+        } else {
+            tbody.innerHTML = data.parcelas.map(function(p) {
+                const rowClass = p.status === 'vencido' ? 'bg-red-50' : '';
+                const podeSelecionar = abaAtual === 'pagos' ? p.editavel : (p.editavel && p.status !== 'pago');
+                const checkCell = podeSelecionar
+                    ? '<td class="px-4 py-3 text-center"><input type="checkbox" class="parcela-checkbox rounded border-slate-300" value="' + p.id + '" onchange="atualizarBarraBulk()"></td>'
+                    : '<td class="px-4 py-3 text-center"></td>';
+                const btnDetalhes = '<button onclick="abrirDetalhes(' + p.nota_id + ')" class="text-blue-600 hover:text-blue-800 font-bold text-sm"><i class="fas fa-eye mr-1"></i> Ver detalhes</button>';
+                const dataPagamentoCell = '<td class="px-6 py-3 text-sm text-slate-600">' + (p.data_pagamento ? formatarData(p.data_pagamento) : '-') + '</td>';
+                let btnAcao;
+                if (abaAtual === 'pagos') {
+                    btnAcao = p.editavel
+                        ? '<button onclick="marcarComoNaoPago(' + p.id + ')" class="text-amber-600 hover:text-amber-800 font-bold text-sm"><i class="fas fa-undo mr-1"></i> Não pago?</button>'
+                        : '<span class="text-green-600 text-sm">Pago</span>';
+                } else {
+                    btnAcao = p.editavel && p.status !== 'pago'
+                        ? '<button onclick="abrirModalDataPagamento(' + p.id + ')" class="text-emerald-600 hover:text-emerald-800 font-bold text-sm"><i class="fas fa-check mr-1"></i> Pago?</button>'
+                        : (p.status === 'pago' ? '<span class="text-green-600 text-sm">Pago</span>' : '-');
+                }
+                return '<tr class="' + rowClass + '">' +
+                    checkCell +
+                    '<td class="px-6 py-3">' + btnDetalhes + '</td>' +
+                    '<td class="px-6 py-3 text-sm text-slate-800">' + (p.emitente_nome || '-') + '</td>' +
+                    '<td class="px-6 py-3 text-sm text-slate-800">' + formatarData(p.data_vencimento) + '</td>' +
+                    '<td class="px-6 py-3 text-sm font-medium text-slate-800">' + formatarMoeda(p.valor) + '</td>' +
+                    '<td class="px-6 py-3 text-sm text-slate-600">' + formaComParcela(p) + '</td>' +
+                    '<td class="px-6 py-3">' + statusBadge(p.status) + '</td>' +
+                    dataPagamentoCell +
+                    '<td class="px-6 py-3 text-center">' + btnAcao + '</td>' +
+                    '</tr>';
+            }).join('');
+            document.getElementById('barra-bulk').classList.remove('hidden');
+            document.getElementById('btn-bulk-pago').classList.add('hidden');
+            document.getElementById('btn-bulk-nao-pago').classList.add('hidden');
+            if (abaAtual === 'nao_pagos') document.getElementById('btn-bulk-pago').classList.remove('hidden');
+            else document.getElementById('btn-bulk-nao-pago').classList.remove('hidden');
+            document.getElementById('select-all-parcelas').checked = false;
+            atualizarBarraBulk();
+        }
+
+        document.getElementById('info-paginacao').textContent = 
+            'Mostrando ' + (paginaAtual * limite + 1) + ' a ' + Math.min((paginaAtual + 1) * limite, totalParcelas) + ' de ' + totalParcelas;
+        document.getElementById('btn-prev').disabled = paginaAtual === 0;
+        document.getElementById('btn-next').disabled = (paginaAtual + 1) * limite >= totalParcelas;
+    } catch (err) {
+        console.error(err);
+        document.getElementById('tbody-parcelas').innerHTML = '<tr><td colspan="9" class="px-6 py-8 text-center text-red-500">Erro ao carregar. Tente novamente.</td></tr>';
+        document.getElementById('barra-bulk').classList.add('hidden');
+    }
+}
+
+function aplicarFiltros() {
+    const buscaInput = document.getElementById('busca');
+    filtros.busca = (buscaInput && buscaInput.value.trim()) || undefined;
+    filtros.data_vencimento_inicio = document.getElementById('data-inicio').value || undefined;
+    filtros.data_vencimento_fim = document.getElementById('data-fim').value || undefined;
+    filtros.forma_pagamento = document.getElementById('forma-pagamento').value || undefined;
+    filtros.status = abaAtual === 'pagos' ? 'pago' : 'nao_pagos';
+    paginaAtual = 0;
+    carregarParcelas();
+}
+
+function limparFiltros() {
+    document.getElementById('busca').value = '';
+    document.getElementById('data-inicio').value = '';
+    document.getElementById('data-fim').value = '';
+    document.getElementById('forma-pagamento').value = '';
+    filtros.busca = undefined;
+    filtros.data_vencimento_inicio = undefined;
+    filtros.data_vencimento_fim = undefined;
+    filtros.forma_pagamento = undefined;
+    filtros.status = abaAtual === 'pagos' ? 'pago' : 'nao_pagos';
+    paginaAtual = 0;
+    carregarParcelas();
+}
+
+function carregarPagina(pag) {
+    if (pag < 0 || pag * limite >= totalParcelas) return;
+    paginaAtual = pag;
+    carregarParcelas();
+}
+
+function getSelecionados() {
+    const checkboxes = document.querySelectorAll('.parcela-checkbox:checked');
+    return Array.from(checkboxes).map(function(cb) { return parseInt(cb.value, 10); }).filter(function(id) { return !isNaN(id); });
+}
+
+function toggleSelectAll(checkbox) {
+    document.querySelectorAll('.parcela-checkbox').forEach(function(cb) { cb.checked = checkbox.checked; });
+    atualizarBarraBulk();
+}
+
+function atualizarBarraBulk() {
+    const n = getSelecionados().length;
+    const el = document.getElementById('texto-selecionados');
+    if (el) el.textContent = n + ' selecionado(s)';
+    const btnPago = document.getElementById('btn-bulk-pago');
+    const btnNaoPago = document.getElementById('btn-bulk-nao-pago');
+    if (btnPago) btnPago.disabled = n === 0;
+    if (btnNaoPago) btnNaoPago.disabled = n === 0;
+    const selectAll = document.getElementById('select-all-parcelas');
+    if (selectAll) {
+        const total = document.querySelectorAll('.parcela-checkbox').length;
+        selectAll.checked = total > 0 && n === total;
+        selectAll.indeterminate = n > 0 && n < total;
+    }
+}
+
+function abrirModalDataPagamento(id) {
+    parcelaIdParaData = id || null;
+    bulkIds = [];
+    const input = document.getElementById('input-data-pagamento');
+    const hoje = new Date();
+    input.value = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+    document.getElementById('modal-data-pagamento').classList.remove('hidden');
+    document.getElementById('modal-data-pagamento').classList.add('flex');
+}
+
+function fecharModalDataPagamento() {
+    parcelaIdParaData = null;
+    bulkIds = [];
+    document.getElementById('modal-data-pagamento').classList.add('hidden');
+    document.getElementById('modal-data-pagamento').classList.remove('flex');
+}
+
+async function confirmarDataPagamento() {
+    const dataStr = document.getElementById('input-data-pagamento').value;
+    if (!dataStr) { alert('Informe a data do pagamento.'); return; }
+    if (bulkIds.length > 0) {
+        try {
+            const res = await fetch('/api/financeiro/parcelas/marcar-pago', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: bulkIds, data_pagamento: dataStr })
+            });
+            if (!res.ok) throw new Error('Erro ao marcar');
+            fecharModalDataPagamento();
+            abaAtual = 'pagos';
+            filtros.status = 'pago';
+            paginaAtual = 0;
+            document.getElementById('tab-nao-pagos').classList.remove('border-blue-600', 'text-blue-600');
+            document.getElementById('tab-nao-pagos').classList.add('border-transparent', 'text-slate-500');
+            document.getElementById('tab-pagos').classList.add('border-blue-600', 'text-blue-600');
+            document.getElementById('tab-pagos').classList.remove('border-transparent', 'text-slate-500');
+            carregarParcelas();
+        } catch (e) {
+            alert('Erro ao marcar selecionados como pago.');
+        }
+        return;
+    }
+    if (!parcelaIdParaData) return;
+    try {
+        const res = await fetch('/api/financeiro/parcelas/' + parcelaIdParaData, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data_pagamento: dataStr })
+        });
+        if (res.status === 403) {
+            alert('Esta parcela não pode ser alterada (dados da NFe).');
+            fecharModalDataPagamento();
+            return;
+        }
+        if (!res.ok) throw new Error('Erro ao marcar');
+        fecharModalDataPagamento();
+        abaAtual = 'pagos';
+        filtros.status = 'pago';
+        paginaAtual = 0;
+        document.getElementById('tab-nao-pagos').classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-nao-pagos').classList.add('border-transparent', 'text-slate-500');
+        document.getElementById('tab-pagos').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-pagos').classList.remove('border-transparent', 'text-slate-500');
+        carregarParcelas();
+    } catch (e) {
+        alert('Erro ao marcar como pago.');
+    }
+}
+
+function marcarSelecionadosComoPago() {
+    const ids = getSelecionados();
+    if (ids.length === 0) { alert('Selecione ao menos um boleto.'); return; }
+    bulkIds = ids;
+    parcelaIdParaData = null;
+    const input = document.getElementById('input-data-pagamento');
+    const hoje = new Date();
+    input.value = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0');
+    document.getElementById('modal-data-pagamento').classList.remove('hidden');
+    document.getElementById('modal-data-pagamento').classList.add('flex');
+}
+
+async function marcarSelecionadosComoNaoPago() {
+    const ids = getSelecionados();
+    if (ids.length === 0) { alert('Selecione ao menos um boleto.'); return; }
+    if (!confirm('Tem certeza que deseja marcar ' + ids.length + ' boleto(s) como não pago?')) return;
+    try {
+        const res = await fetch('/api/financeiro/parcelas/marcar-nao-pago', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: ids })
+        });
+        if (!res.ok) throw new Error('Erro ao marcar');
+        abaAtual = 'nao_pagos';
+        filtros.status = 'nao_pagos';
+        paginaAtual = 0;
+        document.getElementById('tab-pagos').classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-pagos').classList.add('border-transparent', 'text-slate-500');
+        document.getElementById('tab-nao-pagos').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-nao-pagos').classList.remove('border-transparent', 'text-slate-500');
+        carregarParcelas();
+    } catch (e) {
+        alert('Erro ao marcar selecionados como não pago.');
+    }
+}
+
+async function marcarComoNaoPago(id) {
+    if (!confirm('Tem certeza que deseja marcar como não pago?')) return;
+    try {
+        const res = await fetch('/api/financeiro/parcelas/' + id, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ marcar_nao_pago: true })
+        });
+        if (res.status === 403) {
+            alert('Esta parcela não pode ser alterada (dados da NFe).');
+            return;
+        }
+        if (!res.ok) throw new Error('Erro ao marcar');
+        abaAtual = 'nao_pagos';
+        filtros.status = 'nao_pagos';
+        paginaAtual = 0;
+        document.getElementById('tab-pagos').classList.remove('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-pagos').classList.add('border-transparent', 'text-slate-500');
+        document.getElementById('tab-nao-pagos').classList.add('border-blue-600', 'text-blue-600');
+        document.getElementById('tab-nao-pagos').classList.remove('border-transparent', 'text-slate-500');
+        carregarParcelas();
+    } catch (e) {
+        alert('Erro ao marcar como não pago.');
+    }
+}
+
+function exportarExcel() {
+    const params = new URLSearchParams();
+    if (filtros.busca) params.set('busca', filtros.busca);
+    if (filtros.data_vencimento_inicio) params.set('data_vencimento_inicio', filtros.data_vencimento_inicio);
+    if (filtros.data_vencimento_fim) params.set('data_vencimento_fim', filtros.data_vencimento_fim);
+    if (filtros.forma_pagamento) params.set('forma_pagamento', filtros.forma_pagamento);
+    if (filtros.status) params.set('status', filtros.status);
+    window.location.href = '/api/financeiro/exportar/excel?' + params.toString();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    filtros.status = 'nao_pagos';
+    document.getElementById('tab-nao-pagos').classList.add('border-blue-600', 'text-blue-600');
+    document.getElementById('btn-confirmar-data-pagamento').addEventListener('click', confirmarDataPagamento);
+    carregarParcelas();
+});
+</script>
+{% endblock %}

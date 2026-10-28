@@ -1,0 +1,348 @@
+{% extends "layout/base.html" %}
+
+{% block title %}{{ titulo }} - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+        <div>
+            <h2 class="text-xl font-bold text-slate-800">{{ titulo }}</h2>
+            <p class="text-sm text-slate-500">Documentos emitidos pela empresa (via Beatle Uploader)</p>
+        </div>
+        <div class="flex space-x-2">
+            <button id="btn-download-lote" onclick="baixarSelecionados()"
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-bold transition shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                <i class="fas fa-download mr-2"></i> Baixar Selecionados
+            </button>
+            <button id="btn-download-danfe" onclick="baixarDanfeSelecionados()"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg font-bold transition shadow-lg flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                <i class="fas fa-print mr-2"></i> Baixar DANFEs
+            </button>
+        </div>
+    </div>
+
+    <div class="p-4 bg-slate-50 border-b">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4" id="linha-filtros-principal">
+            <div>
+                <select id="tipo-busca" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Busca geral</option>
+                    <option value="numero_nfe">Número da nota</option>
+                    <option value="chave">Chave da nota</option>
+                    <option value="empresa">Destinatário (nome ou CNPJ)</option>
+                    <option value="conteudo_nfe">Conteúdo da nota</option>
+                </select>
+            </div>
+            <div>
+                <input type="text" id="busca" placeholder="Buscar por destinatário, chave, número..."
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                       onkeypress="if(event.key==='Enter') aplicarFiltros()">
+            </div>
+            <div>
+                <input type="date" id="data-inicio" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <input type="date" id="data-fim" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <button onclick="aplicarFiltros()" class="w-full bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">
+                    <i class="fas fa-search mr-2"></i> Buscar
+                </button>
+            </div>
+        </div>
+        {% if modelo == '65' %}
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Valor mín.</label>
+                <input type="number" id="valor-min" step="0.01" min="0" placeholder="0,00"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Valor máx.</label>
+                <input type="number" id="valor-max" step="0.01" min="0" placeholder="—"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Série</label>
+                <input type="text" id="filtro-serie" placeholder="Ex: 65"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div class="flex items-end gap-2">
+                <button onclick="limparFiltros()" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition">
+                    <i class="fas fa-times mr-2"></i> Limpar filtros
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        <div class="flex items-center justify-between text-sm text-gray-600">
+            <span id="total-notas">Carregando...</span>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200" id="tabela-notas">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-6 py-3 text-left" title="Selecionar todas = todos os resultados da busca atual (para baixar em lote)">
+                        <input type="checkbox" id="select-all" onchange="toggleSelectAll()" class="rounded">
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Tipo</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Situação</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">
+                        <span onclick="ordenarPor('numero_nfe')" class="cursor-pointer">Número</span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">
+                        <span onclick="ordenarPor('serie')" class="cursor-pointer">Série</span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">
+                        <span onclick="ordenarPor('emitente_nome')" class="cursor-pointer">Destinatário</span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">
+                        <span onclick="ordenarPor('data_emissao')" class="cursor-pointer">Data</span>
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">
+                        <span onclick="ordenarPor('valor_total')" class="cursor-pointer">Valor Total</span>
+                    </th>
+                    <th class="px-6 py-3 text-center text-xs font-bold text-slate-500 uppercase">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-notas" class="bg-white divide-y divide-slate-100">
+                <tr>
+                    <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>Carregando...</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="paginacao" class="p-4 border-t bg-slate-50 flex justify-between items-center">
+        <div class="text-sm text-gray-600">
+            <span id="info-paginacao">Carregando...</span>
+        </div>
+        <div class="flex space-x-2">
+            <button id="btn-first" onclick="carregarPagina(0)" class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled>Primeira</button>
+            <button id="btn-prev" onclick="carregarPagina(paginaAtual - 1)" class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled>Anterior</button>
+            <button id="btn-next" onclick="carregarPagina(paginaAtual + 1)" class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled>Próxima</button>
+            <button id="btn-last" onclick="carregarPagina(Math.max(0, Math.ceil(totalNotas / limite) - 1))" class="px-4 py-2 bg-white border border-gray-300 rounded-lg disabled:opacity-50" disabled>Última</button>
+        </div>
+    </div>
+</div>
+
+{% include "notas/modal_detalhes.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MODELO_EMITIDAS = "{{ modelo }}";
+const TITULO_EMITIDAS = "{{ titulo }}";
+
+function formatarMoedaBR(num) {
+    if (num == null || isNaN(num)) return '0,00';
+    return Number(num).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+let paginaAtual = 0;
+let totalNotas = 0;
+let limite = 20;
+let filtros = { origem: 'EMITIDA', modelo: MODELO_EMITIDAS };
+let ordenacao = { campo: 'data_emissao', direcao: 'desc' };
+
+function ordenarPor(campo) {
+    if (ordenacao.campo === campo) {
+        ordenacao.direcao = ordenacao.direcao === 'desc' ? 'asc' : 'desc';
+    } else {
+        ordenacao.campo = campo;
+        ordenacao.direcao = 'desc';
+    }
+    paginaAtual = 0;
+    carregarNotas();
+}
+
+function buildAcoesNota(nota) {
+    return `<button onclick="abrirDetalhes(${nota.id})" class="text-blue-600 hover:text-blue-900 font-bold text-sm bg-blue-50 px-3 py-1.5 rounded-md transition">Ver Detalhes</button>`;
+}
+
+async function carregarNotas() {
+    const tbody = document.getElementById('tbody-notas');
+            tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-8 text-center"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Carregando...</p></td></tr>';
+
+    const params = new URLSearchParams({
+        skip: paginaAtual * limite,
+        limit: limite,
+        origem: 'EMITIDA',
+        modelo: MODELO_EMITIDAS
+    });
+    if (ordenacao.campo) {
+        params.append('order_by', ordenacao.campo);
+        params.append('order_dir', ordenacao.direcao);
+    }
+    Object.keys(filtros).forEach(k => {
+        if (filtros[k] !== undefined && filtros[k] !== null && filtros[k] !== '') params.append(k, filtros[k]);
+    });
+
+    try {
+        const res = await fetch(`/api/notas?${params}`);
+        if (!res.ok) throw new Error('Erro ao carregar notas');
+        const data = await res.json();
+        totalNotas = data.total;
+
+        if (data.notas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-8 text-center text-gray-500">Nenhuma nota encontrada</td></tr>';
+        } else {
+            tbody.innerHTML = data.notas.map(nota => {
+                const dataFormatada = nota.data_emissao ? new Date(nota.data_emissao).toLocaleDateString('pt-BR') : '---';
+                const tipoNota = nota.status_manifesto === 'RESUMO' ? 'RESUMO' : 'COMPLETA';
+                const situacao = nota.status_manifesto === 'CANCELADA' ? 'Cancelada' : 'Ativa';
+                const situacaoBadge = nota.status_manifesto === 'CANCELADA'
+                    ? '<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">Cancelada</span>'
+                    : '<span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">Ativa</span>';
+                return `<tr class="hover:bg-blue-50/50 transition-colors" data-nota-id="${nota.id}">
+                    <td class="px-6 py-4"><input type="checkbox" class="nota-checkbox rounded" value="${nota.id}" onchange="atualizarBotaoDownload()"></td>
+                    <td class="px-6 py-4"><span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">${tipoNota}</span></td>
+                    <td class="px-6 py-4">${situacaoBadge}</td>
+                    <td class="px-6 py-4 text-sm font-mono text-slate-500">${nota.numero_nfe || '---'}</td>
+                    <td class="px-6 py-4 text-sm font-mono text-slate-600">${nota.serie || '---'}</td>
+                    <td class="px-6 py-4 text-sm font-semibold text-slate-900 uppercase truncate max-w-xs">${nota.emitente_nome || 'Desconhecido'}</td>
+                    <td class="px-6 py-4 text-sm text-slate-500">${dataFormatada}</td>
+                    <td class="px-6 py-4 text-sm font-bold text-blue-700">R$ ${formatarMoedaBR(nota.valor_total)}</td>
+                    <td class="px-6 py-4 text-center">${buildAcoesNota(nota)}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        document.getElementById('info-paginacao').textContent =
+            `Mostrando ${paginaAtual * limite + 1} a ${Math.min((paginaAtual + 1) * limite, totalNotas)} de ${totalNotas} notas`;
+        document.getElementById('total-notas').textContent = `${totalNotas} nota(s) encontrada(s)`;
+        const naUltima = totalNotas === 0 || (paginaAtual + 1) * limite >= totalNotas;
+        document.getElementById('btn-first').disabled = paginaAtual === 0;
+        document.getElementById('btn-prev').disabled = paginaAtual === 0;
+        document.getElementById('btn-next').disabled = naUltima;
+        document.getElementById('btn-last').disabled = naUltima;
+        atualizarBotaoDownload();
+    } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-8 text-center text-red-500">Erro ao carregar notas</td></tr>';
+    }
+}
+
+function carregarPagina(pagina) {
+    if (pagina < 0 || pagina * limite >= totalNotas) return;
+    paginaAtual = pagina;
+    carregarNotas();
+}
+
+function aplicarFiltros() {
+    filtros = { origem: 'EMITIDA', modelo: MODELO_EMITIDAS };
+    const busca = document.getElementById('busca').value.trim();
+    if (busca) filtros.busca = busca;
+    const tb = document.getElementById('tipo-busca').value;
+    if (tb) filtros.tipo_busca = tb;
+    const di = document.getElementById('data-inicio').value;
+    if (di) filtros.data_inicio = di;
+    const df = document.getElementById('data-fim').value;
+    if (df) filtros.data_fim = df;
+    const vm = document.getElementById('valor-min');
+    if (vm && vm.value !== '') { const v = parseFloat(vm.value); if (!isNaN(v)) filtros.valor_min = v; }
+    const vx = document.getElementById('valor-max');
+    if (vx && vx.value !== '') { const v = parseFloat(vx.value); if (!isNaN(v)) filtros.valor_max = v; }
+    const fs = document.getElementById('filtro-serie');
+    if (fs && fs.value.trim() !== '') filtros.serie = fs.value.trim();
+    paginaAtual = 0;
+    document.getElementById('select-all').checked = false;
+    carregarNotas();
+}
+
+function limparFiltros() {
+    document.getElementById('busca').value = '';
+    document.getElementById('tipo-busca').value = '';
+    document.getElementById('data-inicio').value = '';
+    document.getElementById('data-fim').value = '';
+    const vm = document.getElementById('valor-min');
+    if (vm) vm.value = '';
+    const vx = document.getElementById('valor-max');
+    if (vx) vx.value = '';
+    const fs = document.getElementById('filtro-serie');
+    if (fs) fs.value = '';
+    filtros = { origem: 'EMITIDA', modelo: MODELO_EMITIDAS };
+    paginaAtual = 0;
+    document.getElementById('select-all').checked = false;
+    carregarNotas();
+}
+
+function toggleSelectAll() {
+    const sel = document.getElementById('select-all').checked;
+    document.querySelectorAll('.nota-checkbox').forEach(cb => cb.checked = sel);
+    atualizarBotaoDownload();
+}
+
+function buildFiltrosBody() {
+    const b = { origem: 'EMITIDA', modelo: MODELO_EMITIDAS };
+    if (filtros.busca) b.busca = filtros.busca;
+    if (filtros.tipo_busca) b.tipo_busca = filtros.tipo_busca;
+    if (filtros.data_inicio) b.data_inicio = filtros.data_inicio;
+    if (filtros.data_fim) b.data_fim = filtros.data_fim;
+    if (filtros.valor_min != null) b.valor_min = filtros.valor_min;
+    if (filtros.valor_max != null) b.valor_max = filtros.valor_max;
+    if (filtros.serie) b.serie = filtros.serie;
+    return b;
+}
+
+function atualizarBotaoDownload() {
+    const n = document.querySelectorAll('.nota-checkbox:checked').length;
+    document.getElementById('btn-download-lote').disabled = n === 0;
+    document.getElementById('btn-download-danfe').disabled = n === 0;
+}
+
+async function baixarSelecionados() {
+    const selectAll = document.getElementById('select-all').checked;
+    let body;
+    if (selectAll && totalNotas > 0) {
+        body = JSON.stringify({ filtros: buildFiltrosBody() });
+    } else {
+        const ids = Array.from(document.querySelectorAll('.nota-checkbox:checked')).map(cb => parseInt(cb.value));
+        if (ids.length === 0) return;
+        body = JSON.stringify({ ids });
+    }
+    try {
+        const res = await fetch('/api/notas/download-lote', { method: 'POST', headers: {'Content-Type': 'application/json'}, body });
+        if (!res.ok) throw new Error('Erro');
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = window.URL.createObjectURL(blob);
+        a.download = `notas_${new Date().toISOString().split('T')[0]}.zip`;
+        a.click();
+        window.URL.revokeObjectURL(a.href);
+    } catch (e) {
+        if (typeof toast !== 'undefined') toast.error('Erro ao baixar'); else alert('Erro ao baixar');
+    }
+}
+
+async function baixarDanfeSelecionados() {
+    const selectAll = document.getElementById('select-all').checked;
+    let body;
+    if (selectAll && totalNotas > 0) {
+        body = JSON.stringify({ filtros: buildFiltrosBody() });
+    } else {
+        const ids = Array.from(document.querySelectorAll('.nota-checkbox:checked')).map(cb => parseInt(cb.value));
+        if (ids.length === 0) return;
+        body = JSON.stringify({ ids });
+    }
+    try {
+        const res = await fetch('/api/notas/danfe-lote', { method: 'POST', headers: {'Content-Type': 'application/json'}, body });
+        if (!res.ok) throw new Error('Erro');
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = window.URL.createObjectURL(blob);
+        a.download = `danfes_${new Date().toISOString().split('T')[0]}.zip`;
+        a.click();
+        window.URL.revokeObjectURL(a.href);
+    } catch (e) {
+        if (typeof toast !== 'undefined') toast.error('Erro ao baixar DANFEs'); else alert('Erro ao baixar DANFEs');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', carregarNotas);
+</script>
+{% endblock %}

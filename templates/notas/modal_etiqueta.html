@@ -1,0 +1,136 @@
+<div id="modal-etiqueta" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center z-[60] p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h2 id="modal-etiqueta-titulo" class="text-xl font-bold text-slate-800">Nova Etiqueta</h2>
+            <button onclick="fecharModalEtiqueta()" class="text-slate-400 hover:text-slate-600 p-2 rounded-full">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <form id="form-etiqueta" class="p-6 space-y-4">
+            <input type="hidden" id="etiqueta-id" value="">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Nome da Etiqueta</label>
+                <input type="text" id="etiqueta-nome" required 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg" 
+                       placeholder="Ex: Conferida, Recebida, etc.">
+            </div>
+
+            <div class="grid grid-cols-1 gap-3">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Cor da borda</label>
+                    <div class="flex space-x-2">
+                        <input type="color" id="etiqueta-cor" value="#2563EB" class="w-14 h-10 rounded border border-gray-300" oninput="syncEtiquetaCoresPreview()">
+                        <input type="text" id="etiqueta-cor-hex" value="#2563EB" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm" pattern="^#[0-9A-Fa-f]{6}$" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('etiqueta-cor').value=this.value;syncEtiquetaCoresPreview();}">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Cor do fundo</label>
+                    <div class="flex space-x-2">
+                        <input type="color" id="etiqueta-cor-fundo" value="#DBEAFE" class="w-14 h-10 rounded border border-gray-300" oninput="syncEtiquetaCoresPreview()">
+                        <input type="text" id="etiqueta-cor-fundo-hex" value="#DBEAFE" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm" pattern="^#[0-9A-Fa-f]{6}$" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('etiqueta-cor-fundo').value=this.value;syncEtiquetaCoresPreview();}">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Cor do texto</label>
+                    <div class="flex space-x-2">
+                        <input type="color" id="etiqueta-cor-texto" value="#2563EB" class="w-14 h-10 rounded border border-gray-300" oninput="syncEtiquetaCoresPreview()">
+                        <input type="text" id="etiqueta-cor-texto-hex" value="#2563EB" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm" pattern="^#[0-9A-Fa-f]{6}$" oninput="if(/^#[0-9A-Fa-f]{6}$/.test(this.value)){document.getElementById('etiqueta-cor-texto').value=this.value;syncEtiquetaCoresPreview();}">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Prévia</label>
+                <span id="etiqueta-preview" class="inline-block px-3 py-1 rounded-full text-xs font-semibold border" style="background:#DBEAFE;color:#2563EB;border-color:#2563EB">Etiqueta</span>
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" onclick="fecharModalEtiqueta()" 
+                        class="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg shadow-lg">
+                    <i class="fas fa-save mr-2"></i> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function syncEtiquetaCoresPreview() {
+    const borda = document.getElementById('etiqueta-cor').value.toUpperCase();
+    const fundo = document.getElementById('etiqueta-cor-fundo').value.toUpperCase();
+    const texto = document.getElementById('etiqueta-cor-texto').value.toUpperCase();
+    document.getElementById('etiqueta-cor-hex').value = borda;
+    document.getElementById('etiqueta-cor-fundo-hex').value = fundo;
+    document.getElementById('etiqueta-cor-texto-hex').value = texto;
+    const nome = document.getElementById('etiqueta-nome').value.trim() || 'Etiqueta';
+    const prev = document.getElementById('etiqueta-preview');
+    prev.textContent = nome;
+    prev.style.backgroundColor = fundo;
+    prev.style.color = texto;
+    prev.style.borderColor = borda;
+}
+
+document.getElementById('etiqueta-nome')?.addEventListener('input', syncEtiquetaCoresPreview);
+document.getElementById('etiqueta-cor')?.addEventListener('input', syncEtiquetaCoresPreview);
+document.getElementById('etiqueta-cor-fundo')?.addEventListener('input', syncEtiquetaCoresPreview);
+document.getElementById('etiqueta-cor-texto')?.addEventListener('input', syncEtiquetaCoresPreview);
+
+document.getElementById('form-etiqueta')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('etiqueta-id').value.trim();
+    const nome = document.getElementById('etiqueta-nome').value;
+    const cor = document.getElementById('etiqueta-cor-hex').value;
+    const cor_fundo = document.getElementById('etiqueta-cor-fundo-hex').value;
+    const cor_texto = document.getElementById('etiqueta-cor-texto-hex').value;
+    
+    try {
+        const isEdit = id !== '';
+        const url = isEdit ? `/api/etiquetas/${id}` : '/api/etiquetas';
+        const res = await fetch(url, {
+            method: isEdit ? 'PUT' : 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({nome, cor, cor_fundo, cor_texto})
+        });
+        
+        if (res.ok) {
+            mostrarToast(isEdit ? 'Etiqueta atualizada!' : 'Etiqueta criada com sucesso!', 'success');
+            fecharModalEtiqueta();
+            await carregarEtiquetas();
+            carregarNotas();
+            // Mantém o modal "Gerenciar etiquetas" aberto e atualiza a lista
+            if (typeof abrirGerenciarEtiquetasPagina === 'function'
+                && document.getElementById('modal-gerenciar-etiquetas')
+                && !document.getElementById('modal-gerenciar-etiquetas').classList.contains('hidden')) {
+                abrirGerenciarEtiquetasPagina();
+            }
+        } else {
+            const data = await res.json();
+            mostrarToast(data.detail || (isEdit ? 'Erro ao atualizar etiqueta' : 'Erro ao criar etiqueta'), 'error');
+        }
+    } catch (error) {
+        mostrarToast('Erro ao salvar etiqueta', 'error');
+        console.error(error);
+    }
+});
+
+function fecharModalEtiqueta() {
+    document.getElementById('modal-etiqueta').classList.add('hidden');
+    document.getElementById('modal-etiqueta').classList.remove('flex');
+    document.getElementById('etiqueta-id').value = '';
+    document.getElementById('form-etiqueta').reset();
+    document.getElementById('modal-etiqueta-titulo').textContent = 'Nova Etiqueta';
+    document.getElementById('etiqueta-cor').value = '#2563EB';
+    document.getElementById('etiqueta-cor-hex').value = '#2563EB';
+    document.getElementById('etiqueta-cor-fundo').value = '#DBEAFE';
+    document.getElementById('etiqueta-cor-fundo-hex').value = '#DBEAFE';
+    document.getElementById('etiqueta-cor-texto').value = '#2563EB';
+    document.getElementById('etiqueta-cor-texto-hex').value = '#2563EB';
+    syncEtiquetaCoresPreview();
+}
+</script>

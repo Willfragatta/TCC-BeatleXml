@@ -1,0 +1,238 @@
+{% extends "suporte/base.html" %}
+
+{% block title %}Painel administrativo - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="totais"></div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-2">Usuários</h2>
+        <input id="busca-usuario" type="search" autocomplete="off" placeholder="Nome ou e-mail"
+               class="w-full border rounded px-3 py-2 mb-3">
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-slate-500">
+                        <th class="p-2">Nome</th>
+                        <th class="p-2">E-mail</th>
+                        <th class="p-2">Perfil</th>
+                        <th class="p-2">Status</th>
+                        <th class="p-2">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="usuarios-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-2">Empresas</h2>
+        <input id="busca-empresa" type="search" autocomplete="off" placeholder="Razão social ou CNPJ"
+               class="w-full border rounded px-3 py-2 mb-3">
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-slate-500">
+                        <th class="p-2">Razão social</th>
+                        <th class="p-2">CNPJ</th>
+                        <th class="p-2">Status</th>
+                        <th class="p-2">Última consulta</th>
+                        <th class="p-2">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="empresas-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modal-usuario" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-50 p-4">
+    <form id="form-usuario" class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-3">
+        <h2 class="font-semibold text-slate-800">Dados do usuário</h2>
+        <input type="hidden" id="edit-id">
+        <label class="block text-sm">Nome
+            <input id="edit-nome" class="mt-1 w-full border rounded px-3 py-2">
+        </label>
+        <label class="block text-sm">E-mail
+            <input id="edit-email" type="email" class="mt-1 w-full border rounded px-3 py-2">
+        </label>
+        <label class="block text-sm">Telefone
+            <input id="edit-telefone" class="mt-1 w-full border rounded px-3 py-2">
+        </label>
+        <p id="form-msg" class="text-sm text-slate-600"></p>
+        <div class="flex flex-wrap justify-end gap-2">
+            <button type="button" id="btn-senha" class="px-3 py-2 border rounded">Reenviar senha</button>
+            <button type="button" id="btn-suspender" class="px-3 py-2 border rounded">Suspender</button>
+            <button type="button" id="modal-fechar" class="px-3 py-2 border rounded">Fechar</button>
+            <button type="submit" class="px-3 py-2 bg-slate-900 text-white rounded">Salvar</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function esc(t) {
+    const d = document.createElement('div');
+    d.textContent = t == null ? '' : String(t);
+    return d.innerHTML;
+}
+let usuarios = [];
+let empresas = [];
+
+function dataBr(v) {
+    if (!v) return '-';
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString('pt-BR');
+}
+
+function desenharTotais(resumo) {
+    const cards = [
+        ['Usuários', usuarios.length],
+        ['Empresas', empresas.length],
+        ['Pendentes', (resumo.usuarios || 0) + (resumo.empresas || 0)],
+    ];
+    document.getElementById('totais').innerHTML = cards.map(([rotulo, n]) =>
+        `<div class="bg-white rounded-lg shadow p-4"><p class="text-sm text-slate-500">${rotulo}</p><p class="text-2xl font-bold">${n}</p></div>`
+    ).join('');
+}
+
+function desenharUsuarios() {
+    const q = (document.getElementById('busca-usuario').value || '').trim().toLowerCase();
+    const lista = usuarios.filter(u => {
+        if (!q) return true;
+        return String(u.nome_completo || '').toLowerCase().includes(q) || String(u.email || '').toLowerCase().includes(q);
+    });
+    const tbody = document.getElementById('usuarios-tbody');
+    tbody.innerHTML = lista.map(u => `<tr>
+        <td class="p-2">${esc(u.nome_completo || '-')}</td>
+        <td class="p-2">${esc(u.email)}</td>
+        <td class="p-2">${esc(u.role || 'cliente')}</td>
+        <td class="p-2">${esc(u.status || '-')}</td>
+        <td class="p-2"><button type="button" data-editar="${u.id}" class="text-blue-700">Corrigir</button></td>
+    </tr>`).join('') || '<tr><td colspan="5" class="p-3 text-slate-500">Nenhum usuário.</td></tr>';
+    tbody.querySelectorAll('button[data-editar]').forEach(btn => {
+        btn.addEventListener('click', () => abrirUsuario(Number(btn.getAttribute('data-editar'))));
+    });
+}
+
+function desenharEmpresas() {
+    const q = (document.getElementById('busca-empresa').value || '').trim().toLowerCase();
+    const digitos = q.replace(/\D/g, '');
+    const lista = empresas.filter(e => {
+        if (!q) return true;
+        const nome = String(e.razao_social || '').toLowerCase();
+        const cnpj = String(e.cnpj || '').replace(/\D/g, '');
+        return nome.includes(q) || cnpj.includes(digitos || q);
+    });
+    const tbody = document.getElementById('empresas-tbody');
+    tbody.innerHTML = lista.map(e => {
+        const acoes = e.status === 'pendente_aprovacao'
+            ? `<button type="button" data-aprovar="${e.id}" class="text-emerald-700 mr-2">Aprovar</button>
+               <button type="button" data-rejeitar="${e.id}" class="text-rose-700">Rejeitar</button>`
+            : '-';
+        return `<tr>
+            <td class="p-2">${esc(e.razao_social || '-')}</td>
+            <td class="p-2">${esc(e.cnpj || '-')}</td>
+            <td class="p-2">${esc(e.status || '-')}</td>
+            <td class="p-2">${esc(dataBr(e.ultima_consulta))}</td>
+            <td class="p-2">${acoes}</td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="5" class="p-3 text-slate-500">Nenhuma empresa.</td></tr>';
+    tbody.querySelectorAll('button[data-aprovar]').forEach(btn => {
+        btn.addEventListener('click', () => decidirEmpresa(btn.getAttribute('data-aprovar'), 'aprovar'));
+    });
+    tbody.querySelectorAll('button[data-rejeitar]').forEach(btn => {
+        btn.addEventListener('click', () => decidirEmpresa(btn.getAttribute('data-rejeitar'), 'rejeitar'));
+    });
+}
+
+function abrirUsuario(id) {
+    const u = usuarios.find(item => item.id === id);
+    if (!u) return;
+    document.getElementById('edit-id').value = u.id;
+    document.getElementById('edit-nome').value = u.nome_completo || '';
+    document.getElementById('edit-email').value = u.email || '';
+    document.getElementById('edit-telefone').value = u.telefone || '';
+    document.getElementById('form-msg').textContent = '';
+    const modal = document.getElementById('modal-usuario');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function fecharModal() {
+    const modal = document.getElementById('modal-usuario');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function decidirEmpresa(id, acao) {
+    if (acao === 'rejeitar' && !confirm('Rejeitar esta empresa?')) return;
+    const resp = await fetch('/api/suporte/empresas/' + id + '/aprovar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acao }),
+    });
+    if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        alert(data.detail || 'Não foi possível concluir.');
+        return;
+    }
+    await carregar();
+}
+
+document.getElementById('busca-usuario').addEventListener('input', desenharUsuarios);
+document.getElementById('busca-empresa').addEventListener('input', desenharEmpresas);
+document.getElementById('modal-fechar').addEventListener('click', fecharModal);
+document.getElementById('form-usuario').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const id = document.getElementById('edit-id').value;
+    const resp = await fetch('/api/suporte/usuarios/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            nome_completo: document.getElementById('edit-nome').value,
+            email: document.getElementById('edit-email').value,
+            telefone: document.getElementById('edit-telefone').value,
+        }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    document.getElementById('form-msg').textContent = resp.ok ? 'Salvo.' : (data.detail || 'Erro ao salvar.');
+    if (resp.ok) await carregar();
+});
+document.getElementById('btn-senha').addEventListener('click', async () => {
+    const id = document.getElementById('edit-id').value;
+    const resp = await fetch('/api/suporte/usuarios/' + id + '/reenviar-senha', { method: 'POST' });
+    const data = await resp.json().catch(() => ({}));
+    document.getElementById('form-msg').textContent = resp.ok
+        ? 'Link enviado por e-mail. A senha não é exibida.'
+        : (data.detail || 'Não foi possível enviar.');
+});
+document.getElementById('btn-suspender').addEventListener('click', async () => {
+    const id = document.getElementById('edit-id').value;
+    const resp = await fetch('/api/suporte/usuarios/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'suspenso' }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    document.getElementById('form-msg').textContent = resp.ok ? 'Usuário suspenso.' : (data.detail || 'Erro.');
+    if (resp.ok) await carregar();
+});
+
+async function carregar() {
+    const [u, e, r] = await Promise.all([
+        fetch('/api/suporte/usuarios').then(x => x.json()),
+        fetch('/api/suporte/empresas').then(x => x.json()),
+        fetch('/api/suporte/pendentes-resumo').then(x => x.json()),
+    ]);
+    usuarios = Array.isArray(u) ? u : [];
+    empresas = Array.isArray(e) ? e : [];
+    desenharTotais(r || {});
+    desenharUsuarios();
+    desenharEmpresas();
+}
+carregar();
+</script>
+{% endblock %}

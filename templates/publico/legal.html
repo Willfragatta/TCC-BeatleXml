@@ -1,0 +1,65 @@
+{% set meta_description = meta_description %}
+{% set og_title = og_title %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ titulo }} — BeatleXML</title>
+    {% include "partials/meta.html" %}
+    {% include "partials/gtag.html" %}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-white text-slate-800 font-sans">
+    <header class="border-b border-slate-200">
+        <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2">
+                <img src="/static/img/beatlexmlLogo.png" alt="BeatleXML" class="h-8 w-auto">
+            </a>
+            <a href="/auth/login" class="text-sm text-slate-600 hover:text-slate-900">Entrar</a>
+        </div>
+    </header>
+    <main class="max-w-3xl mx-auto px-6 py-12 prose prose-slate">
+        <h1 class="text-3xl font-semibold text-slate-900 mb-6">{{ titulo }}</h1>
+        {% if pagina == 'privacidade' %}
+        <p class="text-slate-600 leading-relaxed mb-4">O BeatleXML guarda dados da sua operação (notas, vencimentos, usuários da loja) para você trabalhar no painel. Não vendemos essa base.</p>
+        <h2 class="text-lg font-semibold mt-8 mb-2">O que coletamos</h2>
+        <ul class="list-disc pl-5 text-slate-600 space-y-1">
+            <li>Nome, e-mail, telefone e senha (a senha fica só em hash).</li>
+            <li>Dados fiscais e financeiros que você ou o certificado da empresa trazem para o sistema.</li>
+            <li>Registros técnicos de acesso (IP, horário) para proteger a conta contra abuso.</li>
+        </ul>
+        <h2 class="text-lg font-semibold mt-8 mb-2">Como protegemos</h2>
+        <ul class="list-disc pl-5 text-slate-600 space-y-1">
+            <li>Site em HTTPS; cookie de sessão HttpOnly.</li>
+            <li>Acesso ao painel só com conta aprovada e senha.</li>
+            <li>Cada loja vê os próprios dados. Suporte entra só para ajudar na operação.</li>
+        </ul>
+        <h2 class="text-lg font-semibold mt-8 mb-2">Analytics e reCAPTCHA</h2>
+        <p class="text-slate-600 leading-relaxed mb-4">Nas páginas públicas usamos Google Analytics (IP anonimizado) para entender o que funciona no site, e reCAPTCHA do Google para reduzir cadastro automático. O Google trata esses dados segundo as políticas dele.</p>
+        <h2 class="text-lg font-semibold mt-8 mb-2">Seus direitos (LGPD)</h2>
+        <p class="text-slate-600 leading-relaxed">Você pode pedir acesso, correção ou exclusão da conta pelo e-mail <a class="underline" href="mailto:{{ contato_email }}">{{ contato_email }}</a>.</p>
+        {% else %}
+        <p class="text-slate-600 leading-relaxed mb-4">O BeatleXML é um backoffice para a loja conferir notas e contas. Ao criar uma conta, você concorda com o abaixo.</p>
+        <ul class="list-disc pl-5 text-slate-600 space-y-2">
+            <li>O cadastro passa por aprovação do suporte antes do primeiro acesso.</li>
+            <li>Você é responsável pelas pessoas que convidar e pelos certificados/dados que enviar.</li>
+            <li>O sistema ainda não cobra assinatura nesta fase; quando houver plano, avisaremos na conta.</li>
+            <li>Não use o serviço para fraude, scraping ou acesso à conta de terceiros.</li>
+            <li>Podemos suspender contas que coloquem o serviço ou outros clientes em risco.</li>
+        </ul>
+        <p class="text-slate-600 leading-relaxed mt-6">Dúvidas: <a class="underline" href="mailto:{{ contato_email }}">{{ contato_email }}</a>.</p>
+        {% endif %}
+    </main>
+    <footer class="border-t border-slate-200 mt-12">
+        <div class="max-w-3xl mx-auto px-6 py-6 text-sm text-slate-500 flex flex-wrap gap-4 justify-between">
+            <span>© {{ ano }} {{ empresa_razao or 'BeatleXML' }}{% if empresa_cnpj %} · CNPJ {{ empresa_cnpj }}{% endif %} · {{ empresa_cidade or 'Mangueirinha, PR' }}</span>
+            <div class="flex gap-4">
+                <a href="/privacidade" class="hover:text-slate-800">Privacidade</a>
+                <a href="/termos" class="hover:text-slate-800">Termos</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

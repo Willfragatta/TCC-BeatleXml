@@ -1,0 +1,208 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Usuários - Beatle_XML{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+        <div>
+            <h2 class="text-xl font-bold text-slate-800">Usuários</h2>
+            <p class="text-sm text-slate-500">Gerencie os usuários do sistema</p>
+        </div>
+        <button onclick="abrirModalCadastro()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-lg flex items-center">
+            <i class="fas fa-user-plus mr-2"></i> Novo Usuário
+        </button>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Nome</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Empresas</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Papel</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase">Último Login</th>
+                    <th class="px-6 py-3 text-center text-xs font-bold text-slate-500 uppercase">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="usuarios-tbody" class="bg-white divide-y divide-slate-100">
+                <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>Carregando usuários...</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal de cadastro/edição -->
+{% include "usuarios/modal_usuario.html" %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let usuariosData = [];
+let usuariosMeta = { empresas: [], is_admin: false };
+
+async function carregarMeta() {
+    try {
+        const res = await fetch('/api/usuarios/meta');
+        if (res.ok) usuariosMeta = await res.json();
+    } catch (e) { /* ignore */ }
+    const caixa = document.getElementById('usuario-empresas');
+    if (!caixa) return;
+    const empresas = usuariosMeta.empresas || [];
+    caixa.innerHTML = empresas.length
+        ? empresas.map((e) => `
+            <label class="flex items-center gap-2">
+                <input type="checkbox" class="usr-emp" value="${e.id}">
+                <span>${e.razao_social || e.cnpj}</span>
+            </label>`).join('')
+        : '<p class="text-slate-400 text-xs">Nenhuma empresa gerenciável</p>';
+    document.getElementById('campo-role-suporte')?.classList.toggle('hidden', !usuariosMeta.is_admin);
+}
+
+function empresasSelecionadas() {
+    return [...document.querySelectorAll('.usr-emp:checked')].map((el) => parseInt(el.value, 10));
+}
+
+async function carregarUsuarios() {
+    try {
+        await carregarMeta();
+        const res = await fetch('/api/usuarios/');
+        if (!res.ok) throw new Error('Erro ao carregar usuários');
+        usuariosData = await res.json();
+        renderizarUsuarios();
+    } catch (error) {
+        console.error('Erro:', error);
+        document.getElementById('usuarios-tbody').innerHTML =
+            '<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Erro ao carregar usuários</td></tr>';
+    }
+}
+
+function renderizarUsuarios() {
+    const tbody = document.getElementById('usuarios-tbody');
+    if (usuariosData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-gray-500">Nenhum usuário encontrado</td></tr>';
+        return;
+    }
+    tbody.innerHTML = usuariosData.map(usuario => {
+        const statusBadge = usuario.status === 'ativo'
+            ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">ATIVO</span>'
+            : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">' + usuario.status.toUpperCase() + '</span>';
+        const ultimoLogin = usuario.last_login
+            ? new Date(usuario.last_login).toLocaleString('pt-BR')
+            : 'Nunca';
+        const papeis = (usuario.vinculos || []).map((v) => v.papel).filter(Boolean);
+        const papelTxt = usuario.role === 'suporte' ? 'suporte'
+            : (usuario.is_admin ? 'admin' : (papeis[0] || '—'));
+        return `
+            <tr class="hover:bg-blue-50/50 transition-colors">
+                <td class="px-6 py-4 text-sm font-semibold">${usuario.nome_completo || usuario.email}</td>
+                <td class="px-6 py-4 text-sm text-gray-600">${usuario.email}</td>
+                <td class="px-6 py-4">${statusBadge}</td>
+                <td class="px-6 py-4 text-sm text-center">${usuario.total_empresas}</td>
+                <td class="px-6 py-4 text-sm text-slate-600">${papelTxt}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${ultimoLogin}</td>
+                <td class="px-6 py-4 text-center">
+                    <button onclick="editarUsuario(${usuario.id})"
+                            class="text-blue-600 hover:text-blue-900 font-bold text-sm bg-blue-50 px-3 py-1.5 rounded-md transition">
+                        <i class="fas fa-edit mr-1"></i> Editar
+                    </button>
+                </td>
+            </tr>`;
+    }).join('');
+}
+
+function abrirModalCadastro() {
+    document.getElementById('modal-usuario').classList.remove('hidden');
+    document.getElementById('modal-usuario').classList.add('flex');
+    document.getElementById('form-usuario').reset();
+    document.getElementById('usuario-id').value = '';
+    document.getElementById('modal-titulo-usuario').textContent = 'Novo Usuário';
+    document.getElementById('campo-senha').classList.remove('hidden');
+    document.getElementById('usuario-senha').required = true;
+    document.querySelectorAll('.usr-emp').forEach((el) => { el.checked = false; });
+}
+
+function editarUsuario(id) {
+    const usuario = usuariosData.find(u => u.id === id);
+    if (!usuario) return;
+    document.getElementById('usuario-id').value = usuario.id;
+    document.getElementById('usuario-email').value = usuario.email;
+    document.getElementById('usuario-email').disabled = true;
+    document.getElementById('usuario-nome').value = usuario.nome_completo || '';
+    document.getElementById('usuario-telefone').value = usuario.telefone || '';
+    document.getElementById('usuario-status').value = usuario.status;
+    const vinculos = usuario.vinculos || [];
+    document.getElementById('usuario-papel').value = (vinculos[0] && vinculos[0].papel) || 'operador';
+    const ids = new Set(vinculos.map((v) => v.empresa_id));
+    document.querySelectorAll('.usr-emp').forEach((el) => {
+        el.checked = ids.has(parseInt(el.value, 10));
+    });
+    if (document.getElementById('usuario-role')) {
+        document.getElementById('usuario-role').value = usuario.role || 'cliente';
+    }
+    document.getElementById('modal-titulo-usuario').textContent = 'Editar Usuário';
+    document.getElementById('campo-senha').classList.add('hidden');
+    document.getElementById('usuario-senha').required = false;
+    document.getElementById('modal-usuario').classList.remove('hidden');
+    document.getElementById('modal-usuario').classList.add('flex');
+}
+
+document.getElementById('form-usuario')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const id = document.getElementById('usuario-id').value;
+    const senha = document.getElementById('usuario-senha').value;
+    let data = {
+        nome_completo: document.getElementById('usuario-nome').value,
+        telefone: document.getElementById('usuario-telefone').value,
+        status: document.getElementById('usuario-status').value,
+        papel: document.getElementById('usuario-papel').value,
+        empresas_ids: empresasSelecionadas(),
+    };
+    if (usuariosMeta.is_admin && document.getElementById('usuario-role')) {
+        data.role = document.getElementById('usuario-role').value;
+    }
+    if (!id) {
+        data.email = document.getElementById('usuario-email').value;
+        data.senha = senha;
+    }
+    try {
+        const url = id ? `/api/usuarios/${id}` : '/api/usuarios/';
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+            method,
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        if (res.ok) {
+            alert('Usuário salvo com sucesso!');
+            fecharModalUsuario();
+            carregarUsuarios();
+        } else {
+            const error = await res.json();
+            alert(error.detail || 'Erro ao salvar usuário');
+        }
+    } catch (error) {
+        alert('Erro ao salvar usuário');
+        console.error(error);
+    }
+});
+
+function fecharModalUsuario() {
+    document.getElementById('modal-usuario').classList.add('hidden');
+    document.getElementById('modal-usuario').classList.remove('flex');
+    document.getElementById('form-usuario').reset();
+    document.getElementById('usuario-email').disabled = false;
+}
+
+document.addEventListener('DOMContentLoaded', carregarUsuarios);
+</script>
+{% endblock %}
+
