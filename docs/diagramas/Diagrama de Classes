@@ -1,0 +1,45 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+package "Camada de Validação (Pydantic)" {
+  class DocumentoFiscalSchema {
+    + chave_acesso: str
+    + tipo_documento: str
+    + valor_total: float
+    + validar_chave_acesso()
+  }
+}
+
+package "Camada de Persistência (SQLAlchemy)" {
+  class DocumentoFiscalModel {
+    + id: UUID
+    + chave_acesso: String
+    + arquivo_xml: Text
+    + save_to_db(session)
+  }
+}
+
+package "Camada de Serviços" {
+  class SefazIntegrationService {
+    - url_webservice: str
+    + assinar_requisicao(certificado: bytes, senha: str): bytes
+    + consultar_distribuicao_dfe(cnpj: str): list
+  }
+  
+  class XMLProcessor {
+    + extrair_dados_basicos(xml_string: str): dict
+    + decodificar_base64(conteudo: str): str
+  }
+}
+
+class FastAPI_Router {
+  + get_xml_download()
+  + post_upload_documento()
+}
+
+FastAPI_Router --> DocumentoFiscalSchema : valida requisição
+FastAPI_Router --> DocumentoFiscalModel : aciona persistência
+FastAPI_Router --> SefazIntegrationService : dispara consulta
+SefazIntegrationService ..> XMLProcessor : <<uses>> para parsear resposta
+DocumentoFiscalSchema ..> DocumentoFiscalModel : converte para ORM
+@enduml

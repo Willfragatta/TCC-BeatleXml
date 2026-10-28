@@ -1,0 +1,39 @@
+@startuml
+' Modelo físico simplificado (Figura 3 do TCC)
+entity empresas {
+  * id : int
+  --
+  razao_social : varchar
+  cnpj : varchar(14)
+}
+
+entity usuarios {
+  * id : int
+  --
+  nome : varchar
+  email : varchar
+  perfil : varchar
+  * empresa_id : FK
+}
+
+entity certificados_digitais {
+  * id : int
+  --
+  titular : varchar
+  valido_ate : datetime
+  * empresa_id : FK
+}
+
+entity documentos_fiscais {
+  * id : int
+  --
+  tipo : varchar
+  chave_acesso : varchar(44)
+  origem : varchar
+  * empresa_id : FK
+}
+
+empresas ||--o{ usuarios
+empresas ||--o{ certificados_digitais
+empresas ||--o{ documentos_fiscais
+@enduml
