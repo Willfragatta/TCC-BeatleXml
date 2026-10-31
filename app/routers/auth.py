@@ -382,7 +382,11 @@ async def logout():
 
 @router.get("/login")
 async def pagina_login(request: Request):
-    return templates.TemplateResponse(request, "auth/login.html")
+    return templates.TemplateResponse(
+        request,
+        "auth/login.html",
+        {"demo_local": not is_production()},
+    )
 
 
 @router.get("/cadastro")

@@ -5,6 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from app.models.database import Base, engine
+from app.models.password_reset import PasswordReset  # registra a tabela no create_all
 from sqlalchemy import text
 
 def inicializar_banco():

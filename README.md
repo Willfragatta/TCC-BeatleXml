@@ -18,11 +18,33 @@ O worker que consultaria a SEFAZ fica num perfil separado e não sobe junto. As 
 
 É preciso o Docker Desktop.
 
+Caso ainda não tenha o Docker no seu computador, você precisa fazer o download do cliente oficial:
+• Baixe e instale o Docker Desktop para Windows https://www.docker.com/products/docker-desktop/.
+• Durante a instalação, certifique-se de marcar a opção para ativar o WSL 2 (Windows Subsystem for Linux), que garante o melhor desempenho no Windows 11/10.
+• Após instalar, reinicie o computador.
+Se você acabou de instalar o Docker ou de iniciá-lo, o terminal que já estava aberto (como o do seu VS Code) não vai reconhecer o comando imediatamente.
+• Feche completamente o VS Code ou o PowerShell.
+• Reinicie o computador
+• abra o aplicativo docker instalado e deixe no estado "Docker desktop is running"
+• Abra-o novamente sua IDE e tente rodar o comando na pasta do projeto
+• rode docker compose up --build
+
+Se o Docker Desktop estiver aberto e mesmo assim o erro persistir, o instalador pode ter falhado ao adicionar o caminho do Docker no sistema.
+1. Pressione a tecla Windows e digite Variáveis de Ambiente, selecionando "Editar as variáveis de ambiente do sistema".
+2. Clique no botão Variáveis de Ambiente... na parte inferior.
+3. Em "Variáveis do Sistema", procure pela linha Path e clique em Editar.
+4. Certifique-se de que o seguinte caminho está na lista: C:\Program Files\Docker\Docker\resources\bin.
+5. Se não estiver, clique em Novo e adicione-o manualmente. Dê OK em todas as janelas.
+
+• Depois rode:
+
 ```text
 docker compose up --build
 ```
 
-Na primeira subida o contêiner cria as tabelas e grava a carga fictícia. Para ver o worker (ele não consulta a SEFAZ sem certificado):
+• Na primeira subida o contêiner cria as tabelas e grava a carga fictícia. 
+Para ver o worker (ele não consulta a SEFAZ sem certificado): se vc quiser testar com um certificado real, suba-o no sistema no menu empresas, depois vá até o menu Notas ficais e clique no botão "sincronizar".
+
 
 ```text
 docker compose --profile sefaz up
@@ -45,19 +67,58 @@ A matriz já tem uma NF-e de entrada, com duas parcelas em aberto no financeiro,
 
 ## Agentes no Windows
 
-Os programas de mesa não vão dentro do Docker: usam janela e pasta do Windows. No PowerShell, na raiz deste repositório, com a aplicação já no ar:
+O Beatle Uploader e o Beatle Contador são janelas do Windows. Eles ficam fora do Docker e falam com a aplicação em `http://localhost:8000`. Siga esta ordem. O site precisa já estar no ar (`docker compose up --build`) antes de abrir qualquer agente.
+
+• Abra o PowerShell na raiz deste repositório, a pasta que contém `beatle_uploader` e `beatle_contador`. 
+• Os comandos abaixo usam sempre `python -m pip` e `python` juntos. Assim o pacote entra no mesmo Python que vai executar o programa. Se a máquina tiver mais de um Python, um `pip install` solto instala num e o `python` roda o outro: o Uploader para na hora com `NameError: name 'FileSystemEventHandler' is not defined`, porque o `watchdog` não está naquele interpretador.
+
+### 1. Conferir o Python
 
 ```text
-pip install -r beatle_uploader\requirements.txt
+python -c "import sys; print(sys.executable)"
+python -m pip -V
+```
+
+As duas linhas precisam mostrar a mesma pasta, por exemplo `...\Python314\`. Se o `python` abrir a Microsoft Store, instale o Python em [python.org](https://www.python.org/downloads/windows/), marque **Add python.exe to PATH** e abra um PowerShell novo.
+
+### 2. Instalar as dependências
+
+• Ainda na raiz:
+
+```text
+python -m pip install -r beatle_uploader\requirements.txt
+python -m pip install -r beatle_contador\requirements.txt
+```
+
+### 3. Rodar
+
+Cada agente ocupa um terminal. Deixe os dois abertos enquanto testa. Continue na raiz. Entrar na pasta `beatle_uploader` e chamar `python -m beatle_uploader.main` não acha o módulo.
+
+```text
 python beatle_uploader\main.py
 ```
 
 ```text
-pip install -r beatle_contador\requirements.txt
 python beatle_contador\main.py
 ```
 
-O endereço padrão dos dois é `http://localhost:8000`. No Uploader, entre com `gestor@demo.local` e aponte a pasta para um diretório seu. O arquivo `scripts/fixtures/nfce-caixa.xml` tem o CNPJ da matriz no emitente; copie-o para a pasta observada para ver o envio. O Beatle Contador entra com `contador@demo.local`, registra presença e pede a sincronização. Quem fala com a SEFAZ, quando houver certificado, é o servidor.
+No Uploader, a URL já vem `http://localhost:8000`. Entre com `gestor@demo.local` e `Gestor#2026`, escolha a empresa e aponte ao menos uma pasta. Para ver um envio, copie `scripts\fixtures\nfce-caixa.xml` para essa pasta e clique em **Iniciar monitoramento**. O XML de exemplo traz o CNPJ da matriz no emitente. Fechar a janela no X só esconde o programa na bandeja. Use **Parar** dentro da janela para interromper o envio.
+
+No Contador, a URL também é `http://localhost:8000`. Entre com `contador@demo.local` e `Contador#2026`. O programa registra presença e pede a sincronização ao servidor. Quem consulta a SEFAZ, quando houver certificado, é o servidor.
+
+### 4. Gerar o executável
+
+Este passo é opcional. O caminho do item 3 já abre os dois agentes. Gere o `.exe` só quando quiser um arquivo para abrir com dois cliques, sem o terminal.
+
+Os scripts `tools\build_uploader.bat` e `tools\build_contador.bat` não vêm neste pacote. Use o spec que está no repositório, no mesmo Python do item 1, ainda na raiz:
+
+```text
+python -m pip install pyinstaller
+python -m PyInstaller beatle_uploader\build.spec
+python -m PyInstaller beatle_contador\build.spec
+```
+
+Os arquivos saem em `dist\BeatleUploader.exe` e `dist\BeatleContador.exe`. Abra o `.exe` com o site no ar. O endereço padrão continua `http://localhost:8000` e os logins são os mesmos do item 3. Para o link de download do Contador no site, copie o executável para `static\releases\BeatleContador-1.1.0.exe`.
 
 ## E-mail, 2FA e reCAPTCHA
 
@@ -67,6 +128,6 @@ O reCAPTCHA permanece nas telas de entrada. Nesta demonstração a chave fica va
 
 ## Limite da demonstração
 
-A consulta viva à SEFAZ pede certificado A1 e rede. A banca avalia com os XMLs de exemplo e com a importação manual. Não há NFS-e, conciliação de cartão nem cobrança. Não há executável apontando para o servidor real.
+A consulta viva à SEFAZ pede certificado A1 e rede. Aqui avaliamos com os XMLs de exemplo e com a importação manual. 
 
 Com a aplicação no ar, `python scripts/verificar_fluxos.py` repete o login dos papéis, o isolamento, o ZIP, o DANFE, o envio do Uploader, o pedido do Contador e o 2FA no Mailpit. No fim, o 2FA do gestor volta a ficar desligado.

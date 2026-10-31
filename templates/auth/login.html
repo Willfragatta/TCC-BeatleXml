@@ -39,6 +39,19 @@
                 <a href="/auth/cadastro" class="text-slate-900 hover:text-slate-700 font-bold">Cadastre-se</a>
             </p>
         </div>
+
+        {% if demo_local %}
+        <div class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-left text-sm text-slate-700">
+            <p class="font-bold text-slate-800 mb-2">Demonstração local</p>
+            <p class="mb-2">Os documentos de exemplo já estão no banco. Três papéis para entrar:</p>
+            <ul class="space-y-1">
+                <li><span class="font-semibold">Gestor da empresa:</span> gestor@demo.local</li>
+                <li><span class="font-semibold">Contador:</span> contador@demo.local</li>
+                <li><span class="font-semibold">Suporte:</span> suporte@demo.local</li>
+            </ul>
+            <p class="mt-2 text-xs text-slate-500">Operador, leitura e a padaria isolada, com as senhas de todos, estão no README do repositório.</p>
+        </div>
+        {% endif %}
         
         {% if request.query_params.get('erro') %}
         <div class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">

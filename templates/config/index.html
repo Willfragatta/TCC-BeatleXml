@@ -87,6 +87,7 @@
     </div>
     
     <!-- Configurações da Empresa -->
+    {% if empresa %}
     <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 mb-6">
         <h2 class="text-xl font-bold text-slate-800 mb-4">Configurações da Empresa</h2>
         <p class="text-sm text-gray-500 mb-4">Empresa: <strong>{{ empresa.razao_social }}</strong></p>
@@ -120,7 +121,50 @@
             </button>
         </form>
     </div>
+    {% endif %}
     
+    {% if empresa and pode_remover_certificado %}
+    <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 mb-6">
+        <h2 class="text-xl font-bold text-slate-800 mb-2">Certificado A1</h2>
+        <p class="text-sm text-slate-500 mb-4">O arquivo e a senha ficam cifrados nesta empresa. Só o master remove os dois.</p>
+        {% if empresa.certificado_base64 %}
+        <form id="form-remover-certificado">
+            <button type="submit" class="px-6 py-2 border border-red-300 text-red-700 font-bold rounded-lg hover:bg-red-50">
+                Remover certificado
+            </button>
+        </form>
+        {% else %}
+        <p class="text-sm text-slate-600">Nenhum certificado A1 está gravado nesta empresa.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if pode_apagar_conta %}
+    <div class="bg-white rounded-xl shadow-md p-6 border border-red-200 mb-6">
+        <h2 class="text-xl font-bold text-slate-800 mb-2">Apagar minha conta</h2>
+        <p class="text-sm text-slate-500 mb-4">
+            Se você é dono de empresas, saem as notas, as parcelas, as etiquetas, os vínculos e o certificado.
+            Se você só está vinculado, saem a conta e os vínculos. A empresa de outro dono permanece.
+        </p>
+        <form id="form-apagar-conta" class="space-y-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Senha atual</label>
+                <input type="password" id="senha-apagar" required
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Digite seu e-mail para confirmar</label>
+                <input type="email" id="email-apagar" required autocomplete="off"
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                       placeholder="{{ usuario.email }}">
+            </div>
+            <button type="submit" class="px-6 py-2 bg-red-700 text-white font-bold rounded-lg hover:bg-red-800">
+                Apagar conta
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
     <!-- Avisos -->
     <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
         <h3 class="text-lg font-bold text-yellow-800 mb-2">
@@ -215,6 +259,51 @@ document.getElementById('form-config-empresa')?.addEventListener('submit', async
         }
     } catch (error) {
         mostrarToast('Erro ao salvar configurações', 'error');
+    }
+});
+
+document.getElementById('form-remover-certificado')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    if (!confirm('Remover o certificado A1 desta empresa?')) return;
+    try {
+        const res = await fetch('/config/remover-certificado', {method: 'POST'});
+        const data = await res.json();
+        if (res.ok) {
+            mostrarToast(data.message, 'success');
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            mostrarToast(data.detail || 'Erro ao remover o certificado', 'error');
+        }
+    } catch (error) {
+        mostrarToast('Erro ao remover o certificado', 'error');
+    }
+});
+
+document.getElementById('form-apagar-conta')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const email = document.getElementById('email-apagar').value.trim();
+    if (email.toLowerCase() !== '{{ usuario.email }}'.toLowerCase()) {
+        mostrarToast('Digite o e-mail da conta para confirmar', 'error');
+        return;
+    }
+    if (!confirm('Apagar esta conta? Essa ação não volta atrás.')) return;
+    try {
+        const res = await fetch('/config/apagar-conta', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                senha_atual: document.getElementById('senha-apagar').value,
+                email: email,
+            })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            window.location.href = '/auth/login';
+        } else {
+            mostrarToast(data.detail || 'Erro ao apagar a conta', 'error');
+        }
+    } catch (error) {
+        mostrarToast('Erro ao apagar a conta', 'error');
     }
 });
 </script>
